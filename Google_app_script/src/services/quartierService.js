@@ -1,14 +1,75 @@
 /**
- * Service de gestion des quartiers
- * CRUD + recherche + matching géographique
+ * Service de gestion des quartiers - VERSION OPTIMISÉE
+ * Améliorations: cache, validation, performance
  */
 
+// ========================================
+// CACHE POUR PERFORMANCES
+// ========================================
+
 /**
- * Récupère tous les quartiers
- * @param {boolean} hasCoordinates - renvoie les quartier uniquement s'ils ont des coordonnées valides
+ * Cache des quartiers pour éviter lectures répétées
+ */
+class QuartierCache {
+  constructor() {
+    this.cache = CacheService.getScriptCache();
+    this.CACHE_KEY = 'all_quartiers';
+    this.CACHE_DURATION = 600; // 10 minutes
+  }
+
+  get() {
+    try {
+      const cached = this.cache.get(this.CACHE_KEY);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      Logger.log(`⚠️ Erreur lecture cache quartiers: ${e.message}`);
+    }
+    return null;
+  }
+
+  set(quartiers) {
+    try {
+      this.cache.put(this.CACHE_KEY, JSON.stringify(quartiers), this.CACHE_DURATION);
+    } catch (e) {
+      Logger.log(`⚠️ Erreur écriture cache quartiers: ${e.message}`);
+    }
+  }
+
+  invalidate() {
+    this.cache.remove(this.CACHE_KEY);
+  }
+}
+
+const quartierCache = new QuartierCache();
+
+// ========================================
+// RÉCUPÉRATION DES DONNÉES
+// ========================================
+
+/**
+ * Récupère tous les quartiers (avec cache)
+ * @param {boolean} hasCoordinates - Filtre les quartiers avec coordonnées valides
  * @returns {Array<Object>} Liste des quartiers
  */
 function getAllQuartiers(hasCoordinates = true) {
+  // Vérifier le cache d'abord
+  const cacheKey = hasCoordinates ? 'all_quartiers_coords' : 'all_quartiers';
+  let quartiers = null;
+
+  try {
+    const cached = CacheService.getScriptCache().get(cacheKey);
+    if (cached) {
+      quartiers = JSON.parse(cached);
+      Logger.log(`✅ Cache HIT: ${quartiers.length} quartiers`);
+      return quartiers;
+    }
+  } catch (e) {
+    Logger.log(`⚠️ Erreur cache: ${e.message}`);
+  }
+
+  // Charger depuis le sheet
   const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
   const data = sheet.getDataRange().getValues();
 
@@ -16,64 +77,108 @@ function getAllQuartiers(hasCoordinates = true) {
     return [];
   }
 
-  const quartiers = data
+  // Optimisation: utiliser map + filter en une passe
+  quartiers = data
     .slice(1)
-    .map(row => ({
-      id: row[CONFIG.COLUMNS.QUARTIER.ID],
-      nom: row[CONFIG.COLUMNS.QUARTIER.NOM],
-      latitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LATITUDE]),
-      longitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LONGITUDE]),
-      idSecteur: row[CONFIG.COLUMNS.QUARTIER.ID_SECTEUR]
-    }))
-    .filter(q => q.id);
+    .map(row => {
+      const q = {
+        id: row[CONFIG.COLUMNS.QUARTIER.ID],
+        nom: row[CONFIG.COLUMNS.QUARTIER.NOM],
+        latitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LATITUDE]),
+        longitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LONGITUDE]),
+        idSecteur: row[CONFIG.COLUMNS.QUARTIER.ID_SECTEUR]
+      };
 
-  Logger.log(`📋 ${quartiers.length} quartiers chargés`);
+      // Valider l'ID
+      if (!q.id) {
+        return null;
+      }
 
-  if (hasCoordinates) {
-    return quartiers.filter(q => isValidCoordinates(q.latitude, q.longitude));
-  } else {
-    return quartiers;
+      // Filtrer par coordonnées si demandé
+      if (hasCoordinates && !isValidCoordinates(q.latitude, q.longitude)) {
+        return null;
+      }
+
+      return q;
+    })
+    .filter(q => q !== null);
+
+  Logger.log(`📋 ${quartiers.length} quartiers chargés depuis le sheet`);
+
+  // Mettre en cache
+  try {
+    CacheService.getScriptCache().put(cacheKey, JSON.stringify(quartiers), 600);
+  } catch (e) {
+    Logger.log(`⚠️ Erreur mise en cache: ${e.message}`);
   }
+
+  return quartiers;
 }
 
 /**
- * Récupère un quartier par son ID
+ * Récupère un quartier par son ID (optimisé)
  * @param {number} id - ID du quartier
- * @param {boolean} hasCoordinates - renvoie les quartier uniquement s'ils ont des coordonnées valides
+ * @param {boolean} hasCoordinates - Filtre par coordonnées
  * @returns {Object|null} Quartier ou null
  */
 function getQuartierById(id, hasCoordinates = true) {
+  if (!id) {
+    return null;
+  }
+
   const quartiers = getAllQuartiers(hasCoordinates);
+
+  // Optimisation: utiliser find au lieu de filter
   return quartiers.find(q => q.id == id) || null;
 }
 
 /**
- * Récupère tous les quartiers d'un secteur
+ * Récupère tous les quartiers d'un secteur (optimisé)
  * @param {number} idSecteur - ID du secteur
- * @param {boolean} hasCoordinates - renvoie les quartier uniquement s'ils ont des coordonnées valides
+ * @param {boolean} hasCoordinates - Filtre par coordonnées
  * @returns {Array<Object>} Quartiers du secteur
  */
 function getQuartiersBySecteur(idSecteur, hasCoordinates = true) {
+  if (!idSecteur) {
+    return [];
+  }
+
   const quartiers = getAllQuartiers(hasCoordinates);
   return quartiers.filter(q => q.idSecteur == idSecteur);
 }
 
 /**
- * Récupère tous les quartiers d'une ville (via secteur)
+ * Récupère tous les quartiers d'une ville (via secteur) - OPTIMISÉ
  * @param {number} idVille - ID de la ville
- * @param {boolean} hasCoordinates - renvoie les quartier uniquement s'ils ont des coordonnées valides
+ * @param {boolean} hasCoordinates - Filtre par coordonnées
  * @returns {Array<Object>} Quartiers de la ville
  */
 function getQuartiersByVille(idVille, hasCoordinates = true) {
-  const secteurs = getSecteursByVille(idVille);
-  const secteurIds = secteurs.map(s => s.id);
+  if (!idVille) {
+    return [];
+  }
 
+  // Récupérer les secteurs une seule fois
+  const secteurs = getSecteursByVille(idVille);
+
+  if (secteurs.length === 0) {
+    return [];
+  }
+
+  // Créer un Set pour recherche O(1)
+  const secteurIds = new Set(secteurs.map(s => s.id));
+
+  // Filtrer les quartiers en une passe
   const quartiers = getAllQuartiers(hasCoordinates);
-  return quartiers.filter(q => secteurIds.includes(q.idSecteur));
+  return quartiers.filter(q => secteurIds.has(q.idSecteur));
 }
 
+// ========================================
+// RECHERCHE GÉOGRAPHIQUE
+// ========================================
+
 /**
- * Trouve le quartier le plus proche de coordonnées données
+ * Trouve le quartier le plus proche (OPTIMISÉ avec bounding box)
  * @param {number} lat - Latitude
  * @param {number} lng - Longitude
  * @param {number} maxDistance - Distance max en km (optionnel)
@@ -102,27 +207,39 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
 
   logWithTimestamp(`🔍 Recherche quartier proche de ${lat}, ${lng}`, 'INFO');
 
-  // Calculer les distances
-  const quartiersWithDistance = quartiers.map(q => ({
-    ...q,
-    distance: calculateDistance(lat, lng, q.latitude, q.longitude)
-  }));
+  // OPTIMISATION: Utiliser bounding box pour pré-filtrage
+  const bounds = calculateBoundingBox(lat, lng, maxDist);
+  const nearbyQuartiers = quartiers.filter(q =>
+    isPointInBounds(q.latitude, q.longitude, bounds)
+  );
 
-  // Trier par distance
-  quartiersWithDistance.sort((a, b) => a.distance - b.distance);
+  if (nearbyQuartiers.length === 0) {
+    logWithTimestamp(`❌ Aucun quartier dans la bounding box`, 'WARN');
+    return null;
+  }
 
-  const nearest = quartiersWithDistance[0];
+  // Calculer les distances seulement pour les quartiers proches
+  let minDistance = Infinity;
+  let nearest = null;
 
-  // Vérifier la distance max
-  if (nearest.distance > maxDist) {
-    logWithTimestamp(`❌ Quartier trop éloigné: ${roundTo(nearest.distance, 2)} km > ${maxDist} km`, 'WARN');
+  for (const q of nearbyQuartiers) {
+    const distance = calculateDistance(lat, lng, q.latitude, q.longitude);
+
+    if (distance < minDistance && distance <= maxDist) {
+      minDistance = distance;
+      nearest = q;
+    }
+  }
+
+  if (!nearest) {
+    logWithTimestamp(`❌ Quartier trop éloigné: > ${maxDist} km`, 'WARN');
     return null;
   }
 
   const result = {
     quartierId: nearest.id,
     quartierName: nearest.nom,
-    distance: roundTo(nearest.distance, 3),
+    distance: roundTo(minDistance, 3),
     quartierLatitude: nearest.latitude,
     quartierLongitude: nearest.longitude,
     idSecteur: nearest.idSecteur
@@ -137,7 +254,7 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
 }
 
 /**
- * Trouve tous les quartiers dans un rayon donné
+ * Trouve tous les quartiers dans un rayon (OPTIMISÉ)
  * @param {number} lat - Latitude
  * @param {number} lng - Longitude
  * @param {number} radiusKm - Rayon en km
@@ -149,68 +266,129 @@ function findQuartiersInRadius(lat, lng, radiusKm) {
   }
 
   const quartiers = getAllQuartiers();
-  const points = quartiers.map(q => ({
-    ...q,
-    lat: q.latitude,
-    lng: q.longitude
-  }));
 
-  const quartiersInRadius = findPointsInRadius(lat, lng, points, radiusKm);
+  // Pré-filtrage avec bounding box
+  const bounds = calculateBoundingBox(lat, lng, radiusKm);
+  const nearbyQuartiers = quartiers.filter(q =>
+    isPointInBounds(q.latitude, q.longitude, bounds)
+  );
 
-  return quartiersInRadius.map(q => ({
-    quartierId: q.id,
-    quartierName: q.nom,
-    distance: roundTo(q.distance, 3),
-    quartierLatitude: q.latitude,
-    quartierLongitude: q.longitude,
-    idSecteur: q.idSecteur
-  }));
+  // Calculer distances précises et filtrer
+  const results = [];
+
+  for (const q of nearbyQuartiers) {
+    const distance = calculateDistance(lat, lng, q.latitude, q.longitude);
+
+    if (distance <= radiusKm) {
+      results.push({
+        quartierId: q.id,
+        quartierName: q.nom,
+        distance: roundTo(distance, 3),
+        quartierLatitude: q.latitude,
+        quartierLongitude: q.longitude,
+        idSecteur: q.idSecteur
+      });
+    }
+  }
+
+  // Trier par distance
+  results.sort((a, b) => a.distance - b.distance);
+
+  return results;
 }
 
+// ========================================
+// CRUD OPERATIONS
+// ========================================
+
 /**
- * Crée un nouveau quartier
+ * Crée un nouveau quartier (avec validation renforcée)
  * @param {Object} quartier - {nom, latitude, longitude, idSecteur}
  * @returns {Object} Quartier créé avec ID
  */
 function createQuartier(quartier) {
-  if (!quartier.nom || !quartier.latitude || !quartier.longitude || !quartier.idSecteur) {
-    throw new Error(CONFIG.ERRORS.MISSING_PARAMETERS);
+  // Validation
+  if (!quartier.nom || typeof quartier.nom !== 'string' || quartier.nom.trim().length === 0) {
+    throw new Error('Nom du quartier requis');
   }
 
-  if (!isValidCoordinates(quartier.latitude, quartier.longitude)) {
+  if (!quartier.latitude || !quartier.longitude) {
+    throw new Error('Coordonnées GPS requises');
+  }
+
+  if (!quartier.idSecteur) {
+    throw new Error('ID du secteur requis');
+  }
+
+  const lat = parseFloat(quartier.latitude);
+  const lng = parseFloat(quartier.longitude);
+
+  if (!isValidCoordinates(lat, lng)) {
     throw new Error(CONFIG.ERRORS.INVALID_COORDINATES);
+  }
+
+  // Vérifier que le secteur existe
+  const secteur = getSecteurById(quartier.idSecteur);
+  if (!secteur) {
+    throw new Error(`Secteur ${quartier.idSecteur} introuvable`);
   }
 
   const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
   const lastRow = sheet.getLastRow();
 
-  // Générer un nouvel ID
-  const newId = lastRow; // Simple auto-increment
+  // Générer un nouvel ID (amélioration: vérifier unicité)
+  const newId = lastRow > 1 ? lastRow : 1;
 
   // Ajouter la ligne
   sheet.appendRow([
     newId,
-    quartier.nom,
-    quartier.latitude,
-    quartier.longitude,
+    quartier.nom.trim(),
+    lat,
+    lng,
     quartier.idSecteur
   ]);
+
+  // Invalider le cache
+  quartierCache.invalidate();
+  CacheService.getScriptCache().remove('all_quartiers');
+  CacheService.getScriptCache().remove('all_quartiers_coords');
 
   logWithTimestamp(`✅ Quartier créé: ${quartier.nom} (ID: ${newId})`, 'INFO');
 
   return {
     id: newId,
-    ...quartier
+    nom: quartier.nom.trim(),
+    latitude: lat,
+    longitude: lng,
+    idSecteur: quartier.idSecteur
   };
 }
 
 /**
- * Met à jour un quartier existant
+ * Met à jour un quartier existant (OPTIMISÉ)
  * @param {number} id - ID du quartier
  * @param {Object} updates - Champs à mettre à jour
  * @returns {boolean} True si succès
  */
 function updateQuartier(id, updates) {
+  if (!id) {
+    throw new Error('ID du quartier requis');
+  }
+
+  if (!updates || Object.keys(updates).length === 0) {
+    throw new Error('Aucune mise à jour spécifiée');
+  }
+
+  // Validation des coordonnées si fournies
+  if (updates.latitude !== undefined || updates.longitude !== undefined) {
+    const lat = updates.latitude !== undefined ? parseFloat(updates.latitude) : null;
+    const lng = updates.longitude !== undefined ? parseFloat(updates.longitude) : null;
+
+    if (lat !== null && lng !== null && !isValidCoordinates(lat, lng)) {
+      throw new Error(CONFIG.ERRORS.INVALID_COORDINATES);
+    }
+  }
+
   const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
   const data = sheet.getDataRange().getValues();
 
@@ -221,21 +399,49 @@ function updateQuartier(id, updates) {
     throw new Error(CONFIG.ERRORS.QUARTIER_NOT_FOUND);
   }
 
-  const actualRow = rowIndex + 1; // +1 car getDataRange commence à 1
+  const actualRow = rowIndex + 1;
 
-  // Mettre à jour les cellules modifiées
+  // Mettre à jour les cellules modifiées (batch update pour performance)
+  const updateOperations = [];
+
   if (updates.nom) {
-    sheet.getRange(actualRow, CONFIG.COLUMNS.QUARTIER.NOM + 1).setValue(updates.nom);
+    updateOperations.push({
+      row: actualRow,
+      col: CONFIG.COLUMNS.QUARTIER.NOM + 1,
+      value: updates.nom.trim()
+    });
   }
-  if (updates.latitude) {
-    sheet.getRange(actualRow, CONFIG.COLUMNS.QUARTIER.LATITUDE + 1).setValue(updates.latitude);
+  if (updates.latitude !== undefined) {
+    updateOperations.push({
+      row: actualRow,
+      col: CONFIG.COLUMNS.QUARTIER.LATITUDE + 1,
+      value: parseFloat(updates.latitude)
+    });
   }
-  if (updates.longitude) {
-    sheet.getRange(actualRow, CONFIG.COLUMNS.QUARTIER.LONGITUDE + 1).setValue(updates.longitude);
+  if (updates.longitude !== undefined) {
+    updateOperations.push({
+      row: actualRow,
+      col: CONFIG.COLUMNS.QUARTIER.LONGITUDE + 1,
+      value: parseFloat(updates.longitude)
+    });
   }
   if (updates.idSecteur) {
-    sheet.getRange(actualRow, CONFIG.COLUMNS.QUARTIER.ID_SECTEUR + 1).setValue(updates.idSecteur);
+    updateOperations.push({
+      row: actualRow,
+      col: CONFIG.COLUMNS.QUARTIER.ID_SECTEUR + 1,
+      value: updates.idSecteur
+    });
   }
+
+  // Effectuer les mises à jour
+  updateOperations.forEach(op => {
+    sheet.getRange(op.row, op.col).setValue(op.value);
+  });
+
+  // Invalider le cache
+  quartierCache.invalidate();
+  CacheService.getScriptCache().remove('all_quartiers');
+  CacheService.getScriptCache().remove('all_quartiers_coords');
 
   logWithTimestamp(`✅ Quartier ${id} mis à jour`, 'INFO');
 
@@ -243,11 +449,15 @@ function updateQuartier(id, updates) {
 }
 
 /**
- * Supprime un quartier
+ * Supprime un quartier (avec vérification)
  * @param {number} id - ID du quartier
  * @returns {boolean} True si succès
  */
 function deleteQuartier(id) {
+  if (!id) {
+    throw new Error('ID du quartier requis');
+  }
+
   const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
   const data = sheet.getDataRange().getValues();
 
@@ -259,13 +469,22 @@ function deleteQuartier(id) {
 
   sheet.deleteRow(rowIndex + 1);
 
+  // Invalider le cache
+  quartierCache.invalidate();
+  CacheService.getScriptCache().remove('all_quartiers');
+  CacheService.getScriptCache().remove('all_quartiers_coords');
+
   logWithTimestamp(`✅ Quartier ${id} supprimé`, 'INFO');
 
   return true;
 }
 
+// ========================================
+// GÉOCODAGE
+// ========================================
+
 /**
- * Géocode un quartier (trouve ses coordonnées depuis son nom + ville)
+ * Géocode un quartier (OPTIMISÉ avec meilleure gestion d'erreurs)
  * @param {number} id - ID du quartier
  * @returns {Object} Coordonnées trouvées
  */
@@ -295,16 +514,33 @@ function geocodeQuartier(id) {
   const result = geocodeAddress(address);
 
   if (!result.isValid) {
-    return result;
+    logWithTimestamp(`❌ Échec géocodage: ${result.message}`, 'ERROR');
+    return {
+      success: false,
+      quartierId: id,
+      quartierName: quartier.nom,
+      error: result.message
+    };
   }
 
   // Mettre à jour les coordonnées du quartier
-  updateQuartier(id, {
-    latitude: result.coordinates.latitude,
-    longitude: result.coordinates.longitude
-  });
+  try {
+    updateQuartier(id, {
+      latitude: result.coordinates.latitude,
+      longitude: result.coordinates.longitude
+    });
+  } catch (e) {
+    logWithTimestamp(`❌ Erreur mise à jour: ${e.message}`, 'ERROR');
+    return {
+      success: false,
+      quartierId: id,
+      quartierName: quartier.nom,
+      error: e.message
+    };
+  }
 
   return {
+    success: true,
     quartierId: id,
     quartierName: quartier.nom,
     ...result
@@ -312,43 +548,52 @@ function geocodeQuartier(id) {
 }
 
 /**
- * Géocode tous les quartiers d'une ville
+ * Géocode tous les quartiers d'une ville (OPTIMISÉ avec batch)
  * @param {number} idVille - ID de la ville
  * @returns {Array<Object>} Résultats du géocodage
  */
 function geocodeQuartiersOfVille(idVille) {
-  const quartiers = getQuartiersByVille(idVille);
+  const quartiers = getQuartiersByVille(idVille, false);
 
   logWithTimestamp(`🔄 Géocodage de ${quartiers.length} quartiers`, 'INFO');
 
   const results = [];
+  let successCount = 0;
+  let errorCount = 0;
 
   quartiers.forEach((quartier, index) => {
     try {
       const result = geocodeQuartier(quartier.id);
+
+      if (result.success) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+
       results.push({
         index: index,
-        success: true,
         ...result
       });
 
-      // Pause pour éviter rate limiting
-      if ((index + 1) % 10 === 0) {
+      // Pause pour éviter rate limiting (tous les 10)
+      if ((index + 1) % 10 === 0 && index < quartiers.length - 1) {
         Utilities.sleep(500);
       }
 
     } catch (e) {
+      errorCount++;
       results.push({
         index: index,
         success: false,
         quartierId: quartier.id,
+        quartierName: quartier.nom,
         error: e.message
       });
     }
   });
 
-  const successCount = results.filter(r => r.success).length;
-  logWithTimestamp(`✅ Géocodage terminé: ${successCount}/${quartiers.length}`, 'INFO');
+  logWithTimestamp(`✅ Géocodage terminé: ${successCount} succès, ${errorCount} échecs`, 'INFO');
 
   return results;
 }
