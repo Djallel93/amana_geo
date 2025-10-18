@@ -1,0 +1,790 @@
+openapi: 3.0.0
+info:
+  title: GEO API
+  description: API de géolocalisation pour gestion des villes, secteurs et quartiers avec géocodage
+  version: 1.0.0
+  contact:
+    name: Support AMANA
+  license:
+    name: Interne AMANA
+
+servers:
+  - url: https://script.google.com/macros/d/{DEPLOYMENT_ID}/usurp/exec
+    description: Production Server
+    variables:
+      DEPLOYMENT_ID:
+        default: "YOUR_DEPLOYMENT_ID_HERE"
+        description: ID du déploiement du Web App
+
+tags:
+  - name: Santé
+    description: Vérification de l'API
+  - name: Géocodage
+    description: Conversion adresse ↔ coordonnées GPS
+  - name: Quartiers
+    description: Gestion et recherche de quartiers
+  - name: Villes
+    description: Gestion et recherche de villes
+  - name: Secteurs
+    description: Gestion des secteurs
+  - name: Distances
+    description: Calcul de distances géographiques
+
+security:
+  - apiKeyAuth: []
+
+paths:
+  /:
+    get:
+      operationId: ping
+      tags:
+        - Santé
+      summary: Vérifier que l'API fonctionne
+      description: Endpoint simple pour vérifier que l'API est opérationnelle
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [ping]
+            type: string
+          example: ping
+      responses:
+        "200":
+          description: API opérationnelle
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: GEO API opérationnelle
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /geocode:
+    get:
+      operationId: geocodeAddress
+      tags:
+        - Géocodage
+      summary: Géocoder une adresse
+      description: Convertir une adresse en coordonnées GPS (latitude, longitude)
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [geocode]
+            type: string
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "1 Place Royale, Nantes"
+          description: Adresse à géocoder
+        - name: country
+          in: query
+          schema:
+            type: string
+            default: France
+          example: France
+          description: Pays (optionnel)
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Token API pour authentification
+      responses:
+        "200":
+          description: Géocodage réussi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeocodeResponse"
+        "400":
+          description: Adresse invalide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "429":
+          description: Trop de requêtes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reversegeocode:
+    get:
+      operationId: reverseGeocode
+      tags:
+        - Géocodage
+      summary: Géocodage inversé (coordinates → adresse)
+      description: Trouver l'adresse à partir de coordonnées GPS
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [reversegeocode]
+            type: string
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 47.2173
+          description: Latitude
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: -1.5536
+          description: Longitude
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Adresse trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReverseGeocodeResponse"
+        "400":
+          description: Coordonnées invalides
+        "404":
+          description: Adresse non trouvée
+
+  /findQuartier:
+    get:
+      operationId: findNearestQuartier
+      tags:
+        - Quartiers
+      summary: Trouver le quartier le plus proche
+      description: Rechercher le quartier le plus proche d'une localisation GPS
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [findquartier]
+            type: string
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 47.2173
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: -1.5536
+        - name: maxDistance
+          in: query
+          schema:
+            type: number
+            format: double
+            default: 50
+          example: 50
+          description: Distance maximale en km
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Quartier trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuartierResponse"
+        "404":
+          description: Aucun quartier trouvé
+
+  /quartiersinradius:
+    get:
+      operationId: getQuartiersInRadius
+      tags:
+        - Quartiers
+      summary: Quartiers dans un rayon
+      description: Trouver tous les quartiers à proximité d'un point
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [quartiersinradius]
+            type: string
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 47.2173
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: -1.5536
+        - name: radius
+          in: query
+          schema:
+            type: number
+            format: double
+            default: 10
+          example: 10
+          description: Rayon en km
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste des quartiers dans le rayon
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  center:
+                    $ref: "#/components/schemas/Coordinates"
+                  radiusKm:
+                    type: number
+                  count:
+                    type: integer
+                  quartiers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuartierResponse"
+
+  /quartiersbyville:
+    get:
+      operationId: getQuartiersByVille
+      tags:
+        - Quartiers
+      summary: Quartiers d'une ville
+      description: Récupérer tous les quartiers d'une ville
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [quartiersbyville]
+            type: string
+        - name: idVille
+          in: query
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste des quartiers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idVille:
+                    type: integer
+                  count:
+                    type: integer
+                  quartiers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Quartier"
+
+  /getvilles:
+    get:
+      operationId: getAllVilles
+      tags:
+        - Villes
+      summary: Récupérer toutes les villes
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [getvilles]
+            type: string
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste des villes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  villes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Ville"
+
+  /getville:
+    get:
+      operationId: getVilleById
+      tags:
+        - Villes
+      summary: Récupérer une ville par ID
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [getville]
+            type: string
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ville trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ville"
+        "404":
+          description: Ville non trouvée
+
+  /searchvilles:
+    get:
+      operationId: searchVilles
+      tags:
+        - Villes
+      summary: Rechercher des villes
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [searchvilles]
+            type: string
+        - name: codePostal
+          in: query
+          schema:
+            type: string
+          example: "44000"
+        - name: nom
+          in: query
+          schema:
+            type: string
+          example: "Nantes"
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Villes trouvées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  villes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Ville"
+
+  /getsecteurs:
+    get:
+      operationId: getAllSecteurs
+      tags:
+        - Secteurs
+      summary: Récupérer tous les secteurs
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [getsecteurs]
+            type: string
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste des secteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  secteurs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Secteur"
+
+  /calculatedistance:
+    get:
+      operationId: calculateDistance
+      tags:
+        - Distances
+      summary: Calculer distance entre deux points
+      description: Calcule la distance (en km) entre deux points GPS using Haversine formula
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [calculatedistance]
+            type: string
+        - name: lat1
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 48.8566
+          description: Latitude point 1
+        - name: lng1
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 2.3522
+          description: Longitude point 1
+        - name: lat2
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 47.2173
+          description: Latitude point 2
+        - name: lng2
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: -1.5536
+          description: Longitude point 2
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Distance calculée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DistanceResponse"
+        "400":
+          description: Coordonnées invalides
+
+  /calculatedistances:
+    get:
+      operationId: calculateDistances
+      tags:
+        - Distances
+      summary: Calculer distances vers plusieurs destinations
+      description: Calcule les distances vers plusieurs points depuis une origine
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            enum: [calculatedistances]
+            type: string
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 48.8566
+          description: Latitude d'origine
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          example: 2.3522
+          description: Longitude d'origine
+        - name: destinations
+          in: query
+          required: true
+          schema:
+            type: string
+          example: '[{"lat": 47.2173, "lng": -1.5536}, {"lat": 45.7640, "lng": 4.8357}]'
+          description: JSON array de destinations {lat, lng}
+        - name: apiKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Distances calculées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  origin:
+                    $ref: "#/components/schemas/Coordinates"
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                        distance:
+                          type: number
+                        lat:
+                          type: number
+                        lng:
+                          type: number
+
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: query
+      name: apiKey
+      description: Token API pour authentification
+
+  schemas:
+    Coordinates:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+        - latitude
+        - longitude
+
+    Ville:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        codePostal:
+          type: string
+        departement:
+          type: string
+        pays:
+          type: string
+      required:
+        - id
+        - nom
+        - codePostal
+
+    Secteur:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        idVille:
+          type: integer
+      required:
+        - id
+        - nom
+        - idVille
+
+    Quartier:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        idSecteur:
+          type: integer
+      required:
+        - id
+        - nom
+        - latitude
+        - longitude
+        - idSecteur
+
+    GeocodeResponse:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        formattedAddress:
+          type: string
+        components:
+          type: object
+          properties:
+            streetNumber:
+              type: string
+              nullable: true
+            street:
+              type: string
+              nullable: true
+            city:
+              type: string
+            postalCode:
+              type: string
+            department:
+              type: string
+              nullable: true
+            region:
+              type: string
+              nullable: true
+            country:
+              type: string
+        locationType:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ReverseGeocodeResponse:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        formattedAddress:
+          type: string
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        placeId:
+          type: string
+
+    QuartierResponse:
+      type: object
+      properties:
+        quartierId:
+          type: integer
+        quartierName:
+          type: string
+        distance:
+          type: number
+          format: double
+          description: Distance en km
+        quartierLatitude:
+          type: number
+          format: double
+        quartierLongitude:
+          type: number
+          format: double
+        idSecteur:
+          type: integer
+
+    DistanceResponse:
+      type: object
+      properties:
+        distance:
+          type: number
+          format: double
+          description: Distance en km
+        unit:
+          type: string
+          enum: [km]
+        from:
+          $ref: "#/components/schemas/Coordinates"
+        to:
+          $ref: "#/components/schemas/Coordinates"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    UnauthorizedResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [UNAUTHORIZED]
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
