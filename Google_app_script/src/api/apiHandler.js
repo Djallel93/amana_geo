@@ -12,7 +12,7 @@ function doGet(e) {
   try {
     // Vérifier l'authentification API
     const auth = checkAPIAuthentication(e);
-    
+
     if (!auth.authorized) {
       return createErrorResponse(
         'UNAUTHORIZED',
@@ -20,26 +20,12 @@ function doGet(e) {
         401
       );
     }
-    
+
     // Log de la requête avec token info
     logWithTimestamp(`📥 Requête GET: ${JSON.stringify(e.parameter)} [${auth.tokenData?.name || 'anonymous'}]`, 'INFO');
-    
-  try {
-    // Log de la requête
-    logWithTimestamp(`📥 Requête GET: ${JSON.stringify(e.parameter)}`, 'INFO');
-
-    // Vérification de l'authentification
-    const apiKey = e.parameter.apiKey || e.parameter.api_key;
-    if (!checkAuthentication(apiKey)) {
-      return createErrorResponse(
-        CONFIG.ERRORS.UNAUTHORIZED,
-        'Clé API invalide ou manquante',
-        401
-      );
-    }
 
     // Rate limiting (optionnel)
-    const identifier = apiKey || 'anonymous';
+    const identifier = auth.token || 'anonymous';
     if (!checkRateLimit(identifier)) {
       return createErrorResponse(
         'RATE_LIMIT_EXCEEDED',
@@ -171,11 +157,12 @@ function doPost(e) {
     params = { ...e.parameter, ...params };
 
     // Vérification de l'authentification
-    const apiKey = params.apiKey || params.api_key;
-    if (!checkAuthentication(apiKey)) {
+    const auth = checkAPIAuthentication({ parameter: params });
+
+    if (!auth.authorized) {
       return createErrorResponse(
-        CONFIG.ERRORS.UNAUTHORIZED,
-        'Clé API invalide ou manquante',
+        'UNAUTHORIZED',
+        auth.reason,
         401
       );
     }
