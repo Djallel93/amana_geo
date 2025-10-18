@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <?!= include('Google_app_script/assets/css/styles.html'); ?>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        h2 {
+            color: #f5576c;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>🏙️ Géocoder les villes</h2>
+
+        <div class="info-box warning">
+            ⚠️ Cette opération va géocoder les centres des villes sélectionnées.
+        </div>
+
+        <div class="select-all" onclick="toggleSelectAll()">
+            <input type="checkbox" id="selectAll">
+            <strong>Tout sélectionner</strong>
+        </div>
+
+        <div class="ville-list" id="villeList">
+            <p style="text-align: center; color: #999;">Chargement...</p>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="google.script.host.close()">Annuler</button>
+            <button class="btn-primary" onclick="geocodeVilles()">🚀 Géocoder</button>
+        </div>
+
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <p class="progress-text">Géocodage en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        // Charger les villes
+        google.script.run
+            .withSuccessHandler(function (villes) {
+                const list = document.getElementById('villeList');
+                list.innerHTML = '';
+
+                villes.forEach(function (ville) {
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.innerHTML =
+                        '<input type="checkbox" value="' + ville.id + '" class="ville-checkbox">' +
+                        '<span><strong>' + ville.nom + '</strong> (' + ville.codePostal + ')</span>';
+                    list.appendChild(div);
+                });
+            })
+            .getAllVilles();
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.ville-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+
+        function geocodeVilles() {
+            const checkboxes = document.querySelectorAll('.ville-checkbox:checked');
+            const villeIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (villeIds.length === 0) {
+                alert('⚠️ Veuillez sélectionner au moins une ville');
+                return;
+            }
+
+            document.getElementById('progress').classList.add('show');
+            document.querySelector('.btn-primary').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    alert('✅ Géocodage terminé !\n\nSuccès: ' + result.success + '/' + result.total);
+                    google.script.host.close();
+                })
+                .withFailureHandler(function (error) {
+                    alert('❌ Erreur: ' + error);
+                    document.getElementById('progress').classList.remove('show');
+                    document.querySelector('.btn-primary').disabled = false;
+                })
+                .geocodeVillesUI(villeIds);
+        }
+    </script>
+</body>
+
+</html>

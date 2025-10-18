@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <?!= include('Google_app_script/assets/css/styles.html'); ?>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📖 GEO API - Documentation</h1>
+
+        <div class="info-box info">
+            Bienvenue dans la documentation de l'API GEO pour AMANA
+        </div>
+
+        <h2>🎯 Fonctionnalités</h2>
+        <ul>
+            <li>✅ Géocodage d'adresses françaises</li>
+            <li>✅ Recherche de quartiers par proximité</li>
+            <li>✅ Calcul de distances géographiques</li>
+            <li>✅ Gestion des villes, secteurs et quartiers</li>
+            <li>✅ Rapports géographiques automatiques</li>
+        </ul>
+
+        <h2>🚀 Démarrage rapide</h2>
+        <ol>
+            <li><strong>Créer vos villes :</strong> 📦 AMANA → ➕ Créer → 🏙️ Nouvelle ville</li>
+            <li><strong>Créer des secteurs</strong> pour chaque ville (Nord, Sud, Est, Ouest, Centre)</li>
+            <li><strong>Créer des quartiers</strong> avec leurs coordonnées</li>
+            <li><strong>Géocoder automatiquement :</strong> 🗺️ Géolocalisation → 📍 Géocoder les quartiers</li>
+            <li><strong>Générer un rapport :</strong> 🧪 Tests & Outils → 📈 Générer rapport</li>
+        </ol>
+
+        <h2>💡 Astuces d'utilisation</h2>
+        <div class="card">
+            <h4>🔍 Géocodage automatique</h4>
+            <p>Lors de la création d'un quartier, utilisez le bouton "Géocoder automatiquement" pour obtenir les
+                coordonnées GPS sans les saisir manuellement.</p>
+        </div>
+
+        <div class="card">
+            <h4>💾 Cache intelligent</h4>
+            <p>Le système met en cache les résultats de géocodage pour économiser votre quota Google Maps (1000
+                requêtes/jour).</p>
+        </div>
+
+        <div class="card">
+            <h4>📊 Rapports réguliers</h4>
+            <p>Générez des rapports mensuels pour suivre l'évolution de votre couverture géographique.</p>
+        </div>
+
+        <div class="card">
+            <h4>🔄 Centroïdes automatiques</h4>
+            <p>Les coordonnées des secteurs peuvent être calculées automatiquement en fonction de leurs quartiers.</p>
+        </div>
+
+        <h2>🛠️ Outils disponibles</h2>
+        <table>
+            <tr>
+                <th>Outil</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>📍 Géocoder les quartiers</td>
+                <td>Géocodage en masse des quartiers par ville ou secteur</td>
+            </tr>
+            <tr>
+                <td>🏙️ Géocoder les villes</td>
+                <td>Trouve les coordonnées du centre de chaque ville</td>
+            </tr>
+            <tr>
+                <td>🔍 Trouver quartier</td>
+                <td>Recherche le quartier le plus proche d'une adresse</td>
+            </tr>
+            <tr>
+                <td>🎯 Quartiers dans un rayon</td>
+                <td>Trouve tous les quartiers autour d'un point</td>
+            </tr>
+            <tr>
+                <td>🔄 Calculer centroïdes</td>
+                <td>Calcule le centre géographique des secteurs</td>
+            </tr>
+            <tr>
+                <td>📈 Générer rapport</td>
+                <td>Crée un rapport complet avec graphiques</td>
+            </tr>
+        </table>
+
+        <h2>🔐 Sécurité</h2>
+        <div class="info-box success">
+            <p>L'API est protégée par un système d'authentification hybride :</p>
+            <ul style="margin: 10px 0 0 20px;">
+                <li><strong>Interface UI :</strong> Vérification de l'email</li>
+                <li><strong>API REST :</strong> Tokens d'accès</li>
+            </ul>
+            <p style="margin-top: 10px;">Gérez les accès via : 📦 AMANA → 🔐 Gérer l'authentification</p>
+        </div>
+
+        <h2>📞 Support</h2>
+        <p>Pour toute question ou problème :</p>
+        <ul>
+            <li>Consultez les logs : <strong>Extensions → Apps Script → Exécutions</strong></li>
+            <li>Lancez les tests : <strong>📦 AMANA → 🧪 Tests & Outils → ✅ Lancer tous les tests</strong></li>
+            <li>Vérifiez la configuration : <strong>📦 AMANA → ⚙️ Configuration</strong></li>
+        </ul>
+
+        <h2>📚 Documentation complète</h2>
+        <p>Pour plus d'informations, consultez les fichiers suivants dans le projet Apps Script :</p>
+        <ul>
+            <li><code>README.md</code> - Documentation API complète</li>
+            <li><code>QUICKSTART.md</code> - Guide de démarrage rapide</li>
+            <li><code>UI_GUIDE.md</code> - Guide de l'interface utilisateur</li>
+            <li><code>AUTH_SETUP_GUIDE.md</code> - Configuration de l'authentification</li>
+        </ul>
+
+        <div class="info-box warning" style="margin-top: 30px;">
+            <p><strong>⚠️ Important :</strong></p>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Le quota Google Maps est de 1000 géocodages par jour</li>
+                <li>Le cache est vidé automatiquement après 1 heure</li>
+                <li>Nettoyez le cache manuellement si vous modifiez beaucoup de données</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: #e8f5e9; border-radius: 8px;">
+            <h3 style="color: #2e7d32; margin: 0 0 10px 0;">🎉 Vous êtes prêt !</h3>
+            <p style="margin: 0; color: #555;">
+                L'API GEO est opérationnelle et prête à l'emploi.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

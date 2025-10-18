@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <?!= include('Google_app_script/assets/css/styles.html'); ?>
+    <style>
+        body {
+            background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%);
+        }
+
+        h2 {
+            color: #ee9ca7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>🔄 Calculer les centroïdes des secteurs</h2>
+
+        <div class="info-box info">
+            ℹ️ Cette opération calcule le centre géographique de chaque secteur à partir de ses quartiers et met à jour
+            les coordonnées.
+        </div>
+
+        <div class="form-group">
+            <label for="ville">Ville</label>
+            <select id="ville">
+                <option value="">Tous les secteurs</option>
+            </select>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="google.script.host.close()">Annuler</button>
+            <button class="btn-primary" onclick="calculateCentroids()">🔄 Calculer</button>
+        </div>
+
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <p class="progress-text">Calcul en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        // Charger les villes
+        google.script.run
+            .withSuccessHandler(function (villes) {
+                const select = document.getElementById('ville');
+                villes.forEach(function (ville) {
+                    const option = document.createElement('option');
+                    option.value = ville.id;
+                    option.textContent = ville.nom + ' (' + ville.codePostal + ')';
+                    select.appendChild(option);
+                });
+            })
+            .getAllVilles();
+
+        function calculateCentroids() {
+            const villeId = document.getElementById('ville').value;
+
+            document.getElementById('progress').classList.add('show');
+            document.querySelector('.btn-primary').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    alert('✅ Centroïdes calculés !\n\n' +
+                        'Succès: ' + result.success + '\n' +
+                        'Échecs: ' + result.errors + '\n' +
+                        'Total: ' + result.total);
+                    google.script.host.close();
+                })
+                .withFailureHandler(function (error) {
+                    alert('❌ Erreur: ' + error);
+                    document.getElementById('progress').classList.remove('show');
+                    document.querySelector('.btn-primary').disabled = false;
+                })
+                .calculateCentroidsUI(villeId);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <?!= include('Google_app_script/assets/css/styles.html'); ?>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        h2 {
+            color: #667eea;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>📈 Générer un rapport géographique</h2>
+
+        <div class="info-box warning">
+            ℹ️ Ce rapport créera une nouvelle feuille avec les statistiques de distribution géographique.
+        </div>
+
+        <div class="form-group">
+            <h3>Options du rapport</h3>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeVilles" checked>
+                <label for="includeVilles">
+                    Inclure statistiques par ville
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeSecteurs" checked>
+                <label for="includeSecteurs">
+                    Inclure statistiques par secteur
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeQuartiers" checked>
+                <label for="includeQuartiers">
+                    Inclure liste des quartiers
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeCharts" checked>
+                <label for="includeCharts">
+                    Inclure graphiques
+                </label>
+            </div>
+        </div>
+
+        <button class="btn-primary" style="width: 100%;" onclick="generateReport()">📊 Générer le rapport</button>
+
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <p class="progress-text">Génération en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        function generateReport() {
+            const options = {
+                includeVilles: document.getElementById('includeVilles').checked,
+                includeSecteurs: document.getElementById('includeSecteurs').checked,
+                includeQuartiers: document.getElementById('includeQuartiers').checked,
+                includeCharts: document.getElementById('includeCharts').checked
+            };
+
+            document.getElementById('progress').classList.add('show');
+            document.querySelector('.btn-primary').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function () {
+                    alert('✅ Rapport généré avec succès !\n\nConsultez la nouvelle feuille "Rapport_GEO"');
+                    google.script.host.close();
+                })
+                .withFailureHandler(function (error) {
+                    alert('❌ Erreur: ' + error);
+                    document.getElementById('progress').classList.remove('show');
+                    document.querySelector('.btn-primary').disabled = false;
+                })
+                .generateReportUI(options);
+        }
+    </script>
+</body>
+
+</html>
