@@ -1,46 +1,10 @@
 /**
- * Menu principal et fonctions d'affichage des dialogues
+ * Menu principal simplifié
+ * VERSION SANS AUTH
  */
 
-/**
- * Crée le menu AMANA au chargement du Sheet
- */
 function onOpen() {
     const ui = SpreadsheetApp.getUi();
-
-    const quickStartMenu = ui.createMenu('🚀 Quick Start')
-        .addSubMenu(ui.createMenu('1️⃣ Configuration Initiale')
-            .addItem('1.1 - Initialiser authentification', 'step1_setupAuthentication')
-            .addItem('1.2 - Autoriser mon compte', 'step2_authorizeYourself')
-            .addItem('1.3 - Générer token API', 'step3_generateAPIToken')
-        )
-        .addSeparator()
-        .addSubMenu(ui.createMenu('2️⃣ Vérification')
-            .addItem('2.1 - Vérifier authentification', 'step4_checkAuthStatus')
-            .addItem('2.2 - Vérifier optimisations', 'step5_verifyOptimizations')
-        )
-        .addSeparator()
-        .addSubMenu(ui.createMenu('3️⃣ Tests Avancés')
-            .addItem('3.1 - Lancer tous les tests', 'step6_runAllTests')
-            .addItem('3.2 - Benchmark performance', 'step7_benchmarkPerformance')
-            .addItem('3.3 - Tester API REST', 'testAPIEndpoint')
-        )
-        .addSeparator()
-        .addSubMenu(ui.createMenu('4️⃣ Maintenance')
-            .addItem('4.1 - Nettoyer cache', 'step8_cleanCache')
-            .addItem('4.2 - Nettoyer tokens expirés', 'step9_cleanupTokens')
-            .addItem('4.3 - Rapport de santé', 'step10_healthReport')
-        )
-        .addSeparator()
-        .addSubMenu(ui.createMenu('⚙️ Configuration Avancée')
-            .addItem('Configurer triggers automatiques', 'setupAutomaticTriggers')
-            .addItem('Ajouter emails supplémentaires', 'showAddEmailsDialog')
-            .addItem('Générer tokens multiples', 'generateMultipleTokens')
-            .addItem('Créer dashboard', 'createDashboard')
-        )
-        .addSeparator()
-        .addItem('🎯 CONFIGURATION AUTO (tout en 1)', 'quickStart')
-        .addItem('📖 Afficher le guide', 'showQuickStartGuide');
 
     const geolocMenu = ui.createMenu('🗺️ Géolocalisation')
         .addItem('📍 Géocoder les quartiers', 'showGeocodeQuartiersDialog')
@@ -55,26 +19,17 @@ function onOpen() {
         .addItem('📍 Nouveau secteur', 'showCreateSecteurDialog')
         .addItem('🏘️ Nouveau quartier', 'showCreateQuartierDialog');
 
-    const testsMenu = ui.createMenu('🧪 Tests & Outils')
-        .addItem('✅ Lancer tous les tests', 'runAllTestsUI')
-        .addItem('📊 Initialiser données de test', 'initTestDataUI')
+    const toolsMenu = ui.createMenu('🧪 Outils')
         .addItem('🔄 Calculer centroïdes secteurs', 'showCalculateCentroidsDialog')
-        .addItem('🧹 Nettoyer le cache', 'clearCacheUI')
-        .addSeparator()
-        .addItem('📈 Générer rapport géographique', 'showReportDialog');
+        .addItem('🧹 Vider le cache', 'clearCacheUI');
 
     ui.createMenu('📦 AMANA')
-        .addSubMenu(quickStartMenu)
-        .addSeparator()
         .addSubMenu(geolocMenu)
         .addSeparator()
         .addSubMenu(createMenu)
         .addSeparator()
-        .addItem('🔐 Gérer l\'authentification', 'showManageAuthDialog')
+        .addSubMenu(toolsMenu)
         .addSeparator()
-        .addSubMenu(testsMenu)
-        .addSeparator()
-        .addItem('⚙️ Configuration', 'showConfigDialog')
         .addItem('📖 Documentation', 'showDocumentationDialog')
         .addToUi();
 
@@ -98,11 +53,7 @@ function showFindQuartierDialog() {
 }
 
 function showCalculateDistanceDialog() {
-    showAlert(
-        '📏 Calculer une distance',
-        'Cette fonctionnalité sera disponible prochainement.\n\nEn attendant, utilisez l\'API:\nGET /exec?action=calculateDistance&lat1=...&lng1=...&lat2=...&lng2=...',
-        SpreadsheetApp.getUi().ButtonSet.OK
-    );
+    showDialog('calculateDistance', '📏 Calculer une distance', 500, 450);
 }
 
 function showQuartiersInRadiusDialog() {
@@ -125,18 +76,27 @@ function showCalculateCentroidsDialog() {
     showDialog('calculateCentroids', '🔄 Calculer les centroïdes', 500, 350);
 }
 
-function showReportDialog() {
-    showDialog('generateReport', '📈 Générer un rapport géographique', 500, 450);
-}
-
 function showDocumentationDialog() {
-    const html = HtmlService.createHtmlOutputFromFile('Google_app_script/views/partials/documentation.html')
+    const html = HtmlService.createHtmlOutputFromFile('views/partials/documentation.html')
         .setWidth(600)
         .setHeight(500);
 
     SpreadsheetApp.getUi().showModalDialog(html, '📖 Documentation');
 }
 
-function showManageAuthDialog() {
-    showDialog('manageAuth', '🔐 Gestion de l\'authentification', 600, 600);
+// ========================================
+// FONCTIONS D'AIDE
+// ========================================
+
+function showDialog(filename, title, width, height) {
+    const html = HtmlService.createTemplateFromFile(`views/dialogs/${filename}.html`);
+    const output = html.evaluate()
+        .setWidth(width)
+        .setHeight(height);
+
+    SpreadsheetApp.getUi().showModalDialog(output, title);
+}
+
+function include(filename) {
+    return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }

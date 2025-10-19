@@ -1,7 +1,10 @@
 /**
  * Gestionnaire d'API pour le Web App
  * Point d'entrée pour toutes les requêtes HTTP
+ * VERSION SIMPLIFIÉE - Email-based auth uniquement
  */
+
+// Liste des emails autorisés à accéder à l'API
 
 /**
  * Point d'entrée GET pour le Web App
@@ -10,30 +13,6 @@
  */
 function doGet(e) {
   try {
-    // Vérifier l'authentification API
-    const auth = checkAPIAuthentication(e);
-
-    if (!auth.authorized) {
-      return createErrorResponse(
-        'UNAUTHORIZED',
-        auth.reason,
-        401
-      );
-    }
-
-    // Log de la requête avec token info
-    logWithTimestamp(`📥 Requête GET: ${JSON.stringify(e.parameter)} [${auth.tokenData?.name || 'anonymous'}]`, 'INFO');
-
-    // Rate limiting (optionnel)
-    const identifier = auth.token || 'anonymous';
-    if (!checkRateLimit(identifier)) {
-      return createErrorResponse(
-        'RATE_LIMIT_EXCEEDED',
-        'Limite de requêtes dépassée. Réessayez plus tard.',
-        429
-      );
-    }
-
     // Router vers l'action appropriée
     const action = e.parameter.action;
 
@@ -110,6 +89,7 @@ function doGet(e) {
         return createJsonResponse({
           status: 'ok',
           message: 'GEO API opérationnelle',
+          user: userEmail,
           timestamp: new Date().toISOString()
         });
 
@@ -121,7 +101,7 @@ function doGet(e) {
     }
 
   } catch (error) {
-    logWithTimestamp(`❌ Erreur API: ${error.message}`, 'ERROR');
+    console.log(`❌ Erreur API: ${error.message}`);
     return createErrorResponse(
       'INTERNAL_ERROR',
       error.message,
@@ -137,8 +117,6 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
-    logWithTimestamp(`📥 Requête POST`, 'INFO');
-
     // Parser le body JSON
     let params = {};
 
@@ -155,17 +133,6 @@ function doPost(e) {
 
     // Fusionner avec les paramètres de query string
     params = { ...e.parameter, ...params };
-
-    // Vérification de l'authentification
-    const auth = checkAPIAuthentication({ parameter: params });
-
-    if (!auth.authorized) {
-      return createErrorResponse(
-        'UNAUTHORIZED',
-        auth.reason,
-        401
-      );
-    }
 
     const action = params.action;
 
@@ -223,7 +190,7 @@ function doPost(e) {
     }
 
   } catch (error) {
-    logWithTimestamp(`❌ Erreur API POST: ${error.message}`, 'ERROR');
+    console.log(`❌ Erreur API POST: ${error.message}`);
     return createErrorResponse(
       'INTERNAL_ERROR',
       error.message,

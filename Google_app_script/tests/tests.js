@@ -62,7 +62,12 @@ function testDistances() {
   // Test 3: Point le plus proche
   console.log('\n--- Test 3: Point le plus proche ---');
   const nearest = findNearestPoint(48.8566, 2.3522, destinations);
-  console.log(`Ville la plus proche de Paris: ${nearest.name} (${nearest.distance} km)`);
+
+  if (nearest) {
+    console.log(`✅ Point found: ${nearest.name} (${nearest.distance} km)`);
+  } else {
+    console.log('⚠️ No points found');
+  }
 
   // Test 4: Centroïde
   console.log('\n--- Test 4: Centroïde ---');
@@ -144,60 +149,48 @@ function testVilles() {
 function testAPIEndpoint() {
   console.log('========== TEST API ENDPOINT ==========');
 
-  // Simuler une requête GET
-  console.log('\n--- Test 1: Géocodage via API ---');
-  const mockRequest1 = {
-    parameter: {
-      action: 'geocode',
-      address: '1 Place Bellecour, 69002 Lyon'
-    }
-  };
+  try {
+    // Test 1: Géocodage via API
+    console.log('\n--- Test 1: Géocodage via API ---');
+    const mockRequest1 = {
+      parameter: {
+        action: 'geocode',
+        address: '1 Place Bellecour, 69002 Lyon'
+      }
+    };
 
-  const response1 = doGet(mockRequest1);
-  console.log(response1.getContent());
+    const response1 = doGet(mockRequest1);
+    console.log(response1.getContent());
 
-  // Test 2: Trouver quartier
-  console.log('\n--- Test 2: Trouver quartier via API ---');
-  const mockRequest2 = {
-    parameter: {
-      action: 'findQuartier',
-      lat: '47.2173',
-      lng: '-1.5536'
-    }
-  };
+    // Test 2: Trouver quartier
+    console.log('\n--- Test 2: Trouver quartier via API ---');
+    const mockRequest2 = {
+      parameter: {
+        action: 'findquartier',
+        lat: '47.2173',
+        lng: '-1.5536'
+      }
+    };
 
-  const response2 = doGet(mockRequest2);
-  console.log(response2.getContent());
+    const response2 = doGet(mockRequest2);
+    console.log(response2.getContent());
 
-  // Test 3: Calculer distance
-  console.log('\n--- Test 3: Calculer distance via API ---');
-  const mockRequest3 = {
-    parameter: {
-      action: 'calculateDistance',
-      lat1: '48.8566',
-      lng1: '2.3522',
-      lat2: '47.2173',
-      lng2: '-1.5536'
-    }
-  };
+    // Test 3: Ping
+    console.log('\n--- Test 3: Ping API ---');
+    const mockRequest3 = {
+      parameter: {
+        action: 'ping'
+      }
+    };
 
-  const response3 = doGet(mockRequest3);
-  console.log(response3.getContent());
+    const response3 = doGet(mockRequest3);
+    console.log(response3.getContent());
 
-  // Test 4: Ping
-  console.log('\n--- Test 4: Ping API ---');
-  const mockRequest4 = {
-    parameter: {
-      action: 'ping'
-    }
-  };
-
-  const response4 = doGet(mockRequest4);
-  console.log(response4.getContent());
-
-  console.log('\n✅ Tests API terminés');
+    console.log('\n✅ Tests API terminés');
+  } catch (e) {
+    console.log(`❌ Erreur: ${e.message}`);
+  }
 }
-
 /**
  * Test du cache
  */

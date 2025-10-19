@@ -201,11 +201,11 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
   const quartiers = getAllQuartiers();
 
   if (quartiers.length === 0) {
-    logWithTimestamp('⚠️ Aucun quartier en base', 'WARN');
+    console.log('⚠️ Aucun quartier en base', 'WARN');
     return null;
   }
 
-  logWithTimestamp(`🔍 Recherche quartier proche de ${lat}, ${lng}`, 'INFO');
+  console.log(`🔍 Recherche quartier proche de ${lat}, ${lng}`, 'INFO');
 
   // OPTIMISATION: Utiliser bounding box pour pré-filtrage
   const bounds = calculateBoundingBox(lat, lng, maxDist);
@@ -214,7 +214,7 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
   );
 
   if (nearbyQuartiers.length === 0) {
-    logWithTimestamp(`❌ Aucun quartier dans la bounding box`, 'WARN');
+    console.log(`❌ Aucun quartier dans la bounding box`, 'WARN');
     return null;
   }
 
@@ -232,7 +232,7 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
   }
 
   if (!nearest) {
-    logWithTimestamp(`❌ Quartier trop éloigné: > ${maxDist} km`, 'WARN');
+    console.log(`❌ Quartier trop éloigné: > ${maxDist} km`, 'WARN');
     return null;
   }
 
@@ -248,7 +248,7 @@ function findNearestQuartier(lat, lng, maxDistance = null) {
   // Mettre en cache
   setCache(cacheKey, result);
 
-  logWithTimestamp(`✅ Quartier trouvé: ${result.quartierName} (${result.distance} km)`, 'INFO');
+  console.log(`✅ Quartier trouvé: ${result.quartierName} (${result.distance} km)`, 'INFO');
 
   return result;
 }
@@ -353,7 +353,7 @@ function createQuartier(quartier) {
   CacheService.getScriptCache().remove('all_quartiers');
   CacheService.getScriptCache().remove('all_quartiers_coords');
 
-  logWithTimestamp(`✅ Quartier créé: ${quartier.nom} (ID: ${newId})`, 'INFO');
+  console.log(`✅ Quartier créé: ${quartier.nom} (ID: ${newId})`, 'INFO');
 
   return {
     id: newId,
@@ -443,7 +443,7 @@ function updateQuartier(id, updates) {
   CacheService.getScriptCache().remove('all_quartiers');
   CacheService.getScriptCache().remove('all_quartiers_coords');
 
-  logWithTimestamp(`✅ Quartier ${id} mis à jour`, 'INFO');
+  console.log(`✅ Quartier ${id} mis à jour`, 'INFO');
 
   return true;
 }
@@ -474,7 +474,7 @@ function deleteQuartier(id) {
   CacheService.getScriptCache().remove('all_quartiers');
   CacheService.getScriptCache().remove('all_quartiers_coords');
 
-  logWithTimestamp(`✅ Quartier ${id} supprimé`, 'INFO');
+  console.log(`✅ Quartier ${id} supprimé`, 'INFO');
 
   return true;
 }
@@ -509,12 +509,12 @@ function geocodeQuartier(id) {
   // Construire l'adresse à géocoder
   const address = `${quartier.nom}, ${ville.nom}, ${ville.codePostal}, France`;
 
-  logWithTimestamp(`🔍 Géocodage quartier: ${address}`, 'INFO');
+  console.log(`🔍 Géocodage quartier: ${address}`, 'INFO');
 
   const result = geocodeAddress(address);
 
   if (!result.isValid) {
-    logWithTimestamp(`❌ Échec géocodage: ${result.message}`, 'ERROR');
+    console.log(`❌ Échec géocodage: ${result.message}`, 'ERROR');
     return {
       success: false,
       quartierId: id,
@@ -530,7 +530,7 @@ function geocodeQuartier(id) {
       longitude: result.coordinates.longitude
     });
   } catch (e) {
-    logWithTimestamp(`❌ Erreur mise à jour: ${e.message}`, 'ERROR');
+    console.log(`❌ Erreur mise à jour: ${e.message}`, 'ERROR');
     return {
       success: false,
       quartierId: id,
@@ -555,7 +555,7 @@ function geocodeQuartier(id) {
 function geocodeQuartiersOfVille(idVille) {
   const quartiers = getQuartiersByVille(idVille, false);
 
-  logWithTimestamp(`🔄 Géocodage de ${quartiers.length} quartiers`, 'INFO');
+  console.log(`🔄 Géocodage de ${quartiers.length} quartiers`, 'INFO');
 
   const results = [];
   let successCount = 0;
@@ -593,7 +593,7 @@ function geocodeQuartiersOfVille(idVille) {
     }
   });
 
-  logWithTimestamp(`✅ Géocodage terminé: ${successCount} succès, ${errorCount} échecs`, 'INFO');
+  console.log(`✅ Géocodage terminé: ${successCount} succès, ${errorCount} échecs`, 'INFO');
 
   return results;
 }

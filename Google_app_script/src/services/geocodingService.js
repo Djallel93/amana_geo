@@ -28,7 +28,7 @@ function geocodeAddress(address, country = null) {
   }
 
   try {
-    logWithTimestamp(`🔍 Géocodage: ${fullAddress}`, 'INFO');
+    console.log(`🔍 Géocodage: ${fullAddress}`, 'INFO');
 
     // Appel à l'API Google Maps
     const geocoder = Maps.newGeocoder();
@@ -62,12 +62,12 @@ function geocodeAddress(address, country = null) {
     // Mettre en cache
     setCache(cacheKey, geocodingResult);
 
-    logWithTimestamp(`✅ Géocodage réussi: ${location.lat}, ${location.lng}`, 'INFO');
+    console.log(`✅ Géocodage réussi: ${location.lat}, ${location.lng}`, 'INFO');
 
     return geocodingResult;
 
   } catch (e) {
-    logWithTimestamp(`❌ Erreur géocodage: ${e.message}`, 'ERROR');
+    console.log(`❌ Erreur géocodage: ${e.message}`, 'ERROR');
 
     return {
       isValid: false,
@@ -137,7 +137,7 @@ function geocodeAddressesBatch(addresses, batchSize = null) {
   const size = batchSize || CONFIG.QUOTAS.BATCH_SIZE;
   const results = [];
 
-  logWithTimestamp(`🔄 Géocodage batch: ${addresses.length} adresses`, 'INFO');
+  console.log(`🔄 Géocodage batch: ${addresses.length} adresses`, 'INFO');
 
   // Traiter par lots pour éviter timeouts
   for (let i = 0; i < addresses.length; i += size) {
@@ -167,11 +167,11 @@ function geocodeAddressesBatch(addresses, batchSize = null) {
       }
     });
 
-    logWithTimestamp(`📊 Progression: ${Math.min(i + size, addresses.length)}/${addresses.length}`, 'INFO');
+    console.log(`📊 Progression: ${Math.min(i + size, addresses.length)}/${addresses.length}`, 'INFO');
   }
 
   const successCount = results.filter(r => r.isValid).length;
-  logWithTimestamp(`✅ Géocodage terminé: ${successCount}/${addresses.length} réussis`, 'INFO');
+  console.log(`✅ Géocodage terminé: ${successCount}/${addresses.length} réussis`, 'INFO');
 
   return results;
 }
@@ -195,7 +195,7 @@ function reverseGeocode(lat, lng) {
   }
 
   try {
-    logWithTimestamp(`🔍 Géocodage inversé: ${lat}, ${lng}`, 'INFO');
+    console.log(`🔍 Géocodage inversé: ${lat}, ${lng}`, 'INFO');
 
     const geocoder = Maps.newGeocoder();
     const response = geocoder.reverseGeocode(lat, lng);
@@ -223,7 +223,7 @@ function reverseGeocode(lat, lng) {
     return reverseResult;
 
   } catch (e) {
-    logWithTimestamp(`❌ Erreur géocodage inversé: ${e.message}`, 'ERROR');
+    console.log(`❌ Erreur géocodage inversé: ${e.message}`, 'ERROR');
 
     return {
       isValid: false,

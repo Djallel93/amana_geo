@@ -284,99 +284,6 @@ function checkAuthentication(apiKey) {
 }
 
 // ========================================
-// RATE LIMITING
-// ========================================
-
-/**
- * Système de rate limiting amélioré
- */
-class RateLimiter {
-  constructor() {
-    this.cache = CacheService.getScriptCache();
-    this.limit = CONFIG.SECURITY.RATE_LIMIT_REQUESTS || 100;
-    this.window = 3600; // 1 heure
-  }
-
-  /**
-   * Vérifie et incrémente le compteur de requêtes
-   * @param {string} identifier - Identifiant (IP, clé API, etc.)
-   * @returns {Object} {allowed: boolean, remaining: number, resetAt: Date}
-   */
-  check(identifier) {
-    if (!identifier) {
-      return { allowed: true, remaining: this.limit, resetAt: null };
-    }
-
-    const key = `ratelimit_${identifier}`;
-
-    try {
-      const cached = this.cache.get(key);
-
-      if (!cached) {
-        // Première requête
-        this.cache.put(key, '1', this.window);
-        return {
-          allowed: true,
-          remaining: this.limit - 1,
-          resetAt: new Date(Date.now() + this.window * 1000)
-        };
-      }
-
-      const count = parseInt(cached);
-
-      if (count >= this.limit) {
-        console.log(`⚠️ Rate limit dépassé pour ${identifier}: ${count} requêtes`);
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt: new Date(Date.now() + this.window * 1000)
-        };
-      }
-
-      // Incrémenter
-      this.cache.put(key, (count + 1).toString(), this.window);
-
-      return {
-        allowed: true,
-        remaining: this.limit - count - 1,
-        resetAt: new Date(Date.now() + this.window * 1000)
-      };
-
-    } catch (e) {
-      console.log(`⚠️ Erreur rate limiting: ${e.message}`);
-      // En cas d'erreur, autoriser la requête
-      return { allowed: true, remaining: this.limit, resetAt: null };
-    }
-  }
-
-  /**
-   * Réinitialise le compteur pour un identifiant
-   */
-  reset(identifier) {
-    if (!identifier) {
-      return false;
-    }
-
-    const key = `ratelimit_${identifier}`;
-    this.cache.remove(key);
-    return true;
-  }
-}
-
-// Instance globale
-const rateLimiter = new RateLimiter();
-
-/**
- * Vérifie le rate limiting (wrapper pour compatibilité)
- * @param {string} identifier - Identifiant
- * @returns {boolean} True si sous la limite
- */
-function checkRateLimit(identifier) {
-  const result = rateLimiter.check(identifier);
-  return result.allowed;
-}
-
-// ========================================
 // FORMATAGE ET NETTOYAGE
 // ========================================
 
@@ -739,5 +646,56 @@ function countNonEmptyRows(sheetName) {
   } catch (e) {
     logger.error(`Erreur comptage lignes: ${e.message}`);
     return 0;
+  }
+}
+
+/**
+ * Vide le cache complètement
+ * @returns {number} Nombre d'entrées vidées
+ */
+function clearCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.removeAll([]);
+    console.log('✅ Cache vidé avec succès');
+    return 1;
+  } catch (e) {
+    console.log(`❌ Erreur lors du nettoyage du cache: ${e.message}`);
+    return 0;
+  }
+}
+
+/**
+ * Vide le cache depuis l'UI avec confirmation
+ */
+function clearCacheUI() {
+  const ui = SpreadsheetApp.getUi();
+
+  const response = ui.alert(
+    '🧹 Vider le cache',
+    'Cette action va supprimer tout le cache.\n' +
+    'Les prochaines requêtes seront plus lentes (normal).\n' +
+    'Le cache se reconstruira automatiquement.\n\n' +
+    'Continuer?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response === ui.Button.YES) {
+    try {
+      clearCache();
+      ui.alert(
+        '✅ Succès',
+        'Cache nettoyé avec succès!\n\n' +
+        '💡 Les prochaines requêtes seront plus lentes,\n' +
+        'c\'est normal. Le cache se reconstruira automatiquement.',
+        ui.ButtonSet.OK
+      );
+    } catch (e) {
+      ui.alert(
+        '❌ Erreur',
+        'Erreur lors du nettoyage: ' + e.message,
+        ui.ButtonSet.OK
+      );
+    }
   }
 }

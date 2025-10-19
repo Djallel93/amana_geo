@@ -87,7 +87,7 @@ function createVille(ville) {
     ville.pays || 'France'
   ]);
 
-  logWithTimestamp(`✅ Ville créée: ${ville.nom} (ID: ${newId})`, 'INFO');
+  console.log(`✅ Ville créée: ${ville.nom} (ID: ${newId})`, 'INFO');
 
   return {
     id: newId,
@@ -127,7 +127,7 @@ function updateVille(id, updates) {
     sheet.getRange(actualRow, CONFIG.COLUMNS.VILLE.PAYS + 1).setValue(updates.pays);
   }
 
-  logWithTimestamp(`✅ Ville ${id} mise à jour`, 'INFO');
+  console.log(`✅ Ville ${id} mise à jour`, 'INFO');
 
   return true;
 }
@@ -149,7 +149,7 @@ function deleteVille(id) {
 
   sheet.deleteRow(rowIndex + 1);
 
-  logWithTimestamp(`✅ Ville ${id} supprimée`, 'INFO');
+  console.log(`✅ Ville ${id} supprimée`, 'INFO');
 
   return true;
 }
@@ -168,7 +168,7 @@ function geocodeVille(id) {
 
   const address = `${ville.nom}, ${ville.codePostal}, ${ville.pays || 'France'}`;
 
-  logWithTimestamp(`🔍 Géocodage ville: ${address}`, 'INFO');
+  console.log(`🔍 Géocodage ville: ${address}`, 'INFO');
 
   const result = geocodeAddress(address);
 
@@ -267,7 +267,7 @@ function createSecteur(secteur) {
     secteur.idVille
   ]);
 
-  logWithTimestamp(`✅ Secteur créé: ${secteur.nom} (ID: ${newId})`, 'INFO');
+  console.log(`✅ Secteur créé: ${secteur.nom} (ID: ${newId})`, 'INFO');
 
   return {
     id: newId,
@@ -308,7 +308,7 @@ function updateSecteur(id, updates) {
     sheet.getRange(actualRow, CONFIG.COLUMNS.SECTEUR.ID_VILLE + 1).setValue(updates.idVille);
   }
 
-  logWithTimestamp(`✅ Secteur ${id} mis à jour`, 'INFO');
+  console.log(`✅ Secteur ${id} mis à jour`, 'INFO');
 
   return true;
 }
@@ -330,7 +330,7 @@ function deleteSecteur(id) {
 
   sheet.deleteRow(rowIndex + 1);
 
-  logWithTimestamp(`✅ Secteur ${id} supprimé`, 'INFO');
+  console.log(`✅ Secteur ${id} supprimé`, 'INFO');
 
   return true;
 }
@@ -360,7 +360,7 @@ function calculateSecteurCentroid(id) {
     longitude: centroid.longitude
   });
 
-  logWithTimestamp(`✅ Centroïde secteur ${id} calculé: ${centroid.latitude}, ${centroid.longitude}`, 'INFO');
+  console.log(`✅ Centroïde secteur ${id} calculé: ${centroid.latitude}, ${centroid.longitude}`, 'INFO');
 
   return {
     secteurId: id,

@@ -3,7 +3,7 @@
  * =============================================================== */
 
 /** Rayon moyen de la Terre en mètres */
-const EARTH_RADIUS = 6371000;
+const EARTH_RADIUS_KM = 6371;
 
 /**
  * Convertit des degrés en radians.
@@ -62,20 +62,17 @@ function kilometersToMeters(kilometers) {
  * @returns {number} Distance en mètres
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = EARTH_RADIUS;
-  const φ1 = degreesToRadians(lat1);
-  const φ2 = degreesToRadians(lat2);
-  const Δφ = degreesToRadians(lat2 - lat1);
-  const Δλ = degreesToRadians(lon2 - lon1);
+  const R = EARTH_RADIUS_KM;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
 
-  const a =
-    Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  const distance = R * c;
-  console.log(`[calculateDistance] Distance = ${distance} m`);
-  return distance;
+  return roundTo(R * c, 3); // Returns km
 }
 
 /**
@@ -265,4 +262,91 @@ function arePointsClose(p1, p2, threshold = 50) {
   const result = distance <= threshold;
   console.log(`[arePointsClose] ${distance}m <= ${threshold}m ? ${result}`);
   return result;
+}
+
+function calculateDistances(originLat, originLng, destinations) {
+  return destinations.map((dest, index) => {
+    const destLat = dest.lat || dest.latitude;
+    const destLng = dest.lng || dest.longitude;
+    if (typeof destLat !== 'number' || typeof destLng !== 'number') {
+      return { index, distance: null, error: 'Invalid coords' };
+    }
+    return {
+      index,
+      distance: calculateDistance(originLat, originLng, destLat, destLng),
+      lat: destLat,
+      lng: destLng
+    };
+  });
+}
+
+function findNearestPoint(referencePoint, points) {
+  if (!referencePoint || !Array.isArray(points) || points.length === 0) {
+    return null;
+  }
+
+  const refLat = referencePoint.latitude || referencePoint.lat;
+  const refLng = referencePoint.longitude || referencePoint.lng;
+
+  let nearest = null;
+  let minDistance = Infinity;
+  let nearestIndex = -1;
+
+  points.forEach((p, i) => {
+    const pLat = p.latitude || p.lat;
+    const pLng = p.longitude || p.lng;
+    if (typeof pLat !== 'number' || typeof pLng !== 'number') return;
+
+    const d = calculateDistance(refLat, refLng, pLat, pLng);
+    if (d < minDistance) {
+      minDistance = d;
+      nearest = p;
+      nearestIndex = i;
+    }
+  });
+
+  if (!nearest) return null;
+
+  return {
+    point: nearest,
+    distance: minDistance,
+    index: nearestIndex,
+    name: nearest.name || `Point ${nearestIndex}`
+  };
+}
+
+function calculateCentroid(points) {
+  let totalLat = 0, totalLng = 0, count = 0;
+
+  points.forEach(p => {
+    const lat = p.latitude || p.lat;
+    const lng = p.longitude || p.lng;
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      totalLat += lat;
+      totalLng += lng;
+      count++;
+    }
+  });
+
+  return {
+    latitude: roundTo(totalLat / count, 6),
+    longitude: roundTo(totalLng / count, 6)
+  };
+}
+
+function calculateBoundingBox(lat, lng, radiusKm) {
+  const deltaLat = radiusKm / 111.0;
+  const deltaLng = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
+
+  return {
+    minLat: roundTo(lat - deltaLat, 6),
+    maxLat: roundTo(lat + deltaLat, 6),
+    minLng: roundTo(lng - deltaLng, 6),
+    maxLng: roundTo(lng + deltaLng, 6)
+  };
+}
+
+function isPointInBounds(lat, lng, bounds) {
+  return lat >= bounds.minLat && lat <= bounds.maxLat &&
+    lng >= bounds.minLng && lng <= bounds.maxLng;
 }

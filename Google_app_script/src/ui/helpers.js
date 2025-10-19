@@ -10,7 +10,7 @@
  */
 function loadHtmlTemplate(filename) {
     // Charger le fichier HTML
-    const html = HtmlService.createTemplateFromFile(`Google_app_script/views/dialogs/${filename}.html`);
+    const html = HtmlService.createTemplateFromFile(`views/dialogs/${filename}.html`);
 
     // Évaluer le template
     const output = html.evaluate();

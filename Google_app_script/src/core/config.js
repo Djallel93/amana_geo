@@ -48,13 +48,6 @@ const CONFIG = {
     RAYON_TERRE_KM: 6371 // Rayon de la Terre pour calculs Haversine
   },
 
-  // Sécurité
-  SECURITY: {
-    API_KEY: PropertiesService.getScriptProperties().getProperty('API_KEY') || null,
-    RATE_LIMIT_REQUESTS: 100, // Nombre de requêtes par IP/heure
-    ENABLE_AUTH: PropertiesService.getScriptProperties().getProperty('ENABLE_AUTH') === 'true'
-  },
-
   // Quotas Google Maps
   QUOTAS: {
     GEOCODING_DAILY_LIMIT: 1000,
