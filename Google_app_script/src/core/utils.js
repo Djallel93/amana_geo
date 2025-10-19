@@ -107,14 +107,14 @@ class CacheManager {
       const cached = this.cache.get(key);
 
       if (cached) {
-        Logger.log(`✅ Cache HIT: ${key}`);
+        console.log(`✅ Cache HIT: ${key}`);
         return JSON.parse(cached);
       }
 
-      Logger.log(`❌ Cache MISS: ${key}`);
+      console.log(`❌ Cache MISS: ${key}`);
       return null;
     } catch (e) {
-      Logger.log(`⚠️ Erreur cache lecture: ${e.message}`);
+      console.log(`⚠️ Erreur cache lecture: ${e.message}`);
       return null;
     }
   }
@@ -133,15 +133,15 @@ class CacheManager {
 
       // Vérifier la taille (limite 100KB par entrée)
       if (serialized.length > 100000) {
-        Logger.log(`⚠️ Valeur trop grande pour le cache: ${key}`);
+        console.log(`⚠️ Valeur trop grande pour le cache: ${key}`);
         return false;
       }
 
       this.cache.put(key, serialized, ttl);
-      Logger.log(`💾 Cache SET: ${key} (${ttl}s)`);
+      console.log(`💾 Cache SET: ${key} (${ttl}s)`);
       return true;
     } catch (e) {
-      Logger.log(`⚠️ Erreur cache écriture: ${e.message}`);
+      console.log(`⚠️ Erreur cache écriture: ${e.message}`);
       return false;
     }
   }
@@ -156,10 +156,10 @@ class CacheManager {
 
     try {
       this.cache.remove(key);
-      Logger.log(`🗑️ Cache REMOVE: ${key}`);
+      console.log(`🗑️ Cache REMOVE: ${key}`);
       return true;
     } catch (e) {
-      Logger.log(`⚠️ Erreur cache suppression: ${e.message}`);
+      console.log(`⚠️ Erreur cache suppression: ${e.message}`);
       return false;
     }
   }
@@ -233,7 +233,7 @@ function createJsonResponse(data, status = 200) {
  * Crée une réponse d'erreur standardisée
  */
 function createErrorResponse(errorCode, message, status = 400) {
-  Logger.log(`❌ Erreur API: ${errorCode} - ${message}`);
+  console.log(`❌ Erreur API: ${errorCode} - ${message}`);
 
   return createJsonResponse({
     error: {
@@ -269,14 +269,14 @@ function createSuccessResponse(data, message = null) {
  * @deprecated Utiliser checkAPIAuthentication() dans auth.js
  */
 function checkAuthentication(apiKey) {
-  Logger.log('⚠️ checkAuthentication() est déprécié, utilisez checkAPIAuthentication()');
+  console.log('⚠️ checkAuthentication() est déprécié, utilisez checkAPIAuthentication()');
 
   if (!CONFIG.SECURITY.ENABLE_AUTH) {
     return true;
   }
 
   if (!apiKey || apiKey !== CONFIG.SECURITY.API_KEY) {
-    Logger.log('⚠️ Authentification échouée');
+    console.log('⚠️ Authentification échouée');
     return false;
   }
 
@@ -325,7 +325,7 @@ class RateLimiter {
       const count = parseInt(cached);
 
       if (count >= this.limit) {
-        Logger.log(`⚠️ Rate limit dépassé pour ${identifier}: ${count} requêtes`);
+        console.log(`⚠️ Rate limit dépassé pour ${identifier}: ${count} requêtes`);
         return {
           allowed: false,
           remaining: 0,
@@ -343,7 +343,7 @@ class RateLimiter {
       };
 
     } catch (e) {
-      Logger.log(`⚠️ Erreur rate limiting: ${e.message}`);
+      console.log(`⚠️ Erreur rate limiting: ${e.message}`);
       // En cas d'erreur, autoriser la requête
       return { allowed: true, remaining: this.limit, resetAt: null };
     }
@@ -482,102 +482,6 @@ function formatDate(date) {
     return 'Date invalide';
   }
 }
-
-// ========================================
-// LOGGING
-// ========================================
-
-/**
- * Système de logging amélioré
- */
-class Logger {
-  constructor() {
-    this.levels = {
-      DEBUG: 0,
-      INFO: 1,
-      WARN: 2,
-      ERROR: 3
-    };
-    this.currentLevel = this.levels.INFO;
-  }
-
-  /**
-   * Log avec niveau et timestamp
-   */
-  log(message, level = 'INFO', data = null) {
-    const levelValue = this.levels[level] || this.levels.INFO;
-
-    if (levelValue < this.currentLevel) {
-      return; // Ne pas logger si niveau trop bas
-    }
-
-    const timestamp = new Date().toISOString();
-    const emoji = this.getEmoji(level);
-    const logMessage = `[${timestamp}] ${emoji} [${level}] ${message}`;
-
-    // Logger dans Apps Script
-    console.log(logMessage);
-
-    // Si des données supplémentaires
-    if (data) {
-      console.log(JSON.stringify(data, null, 2));
-    }
-  }
-
-  /**
-   * Raccourcis pour chaque niveau
-   */
-  debug(message, data) {
-    this.log(message, 'DEBUG', data);
-  }
-
-  info(message, data) {
-    this.log(message, 'INFO', data);
-  }
-
-  warn(message, data) {
-    this.log(message, 'WARN', data);
-  }
-
-  error(message, data) {
-    this.log(message, 'ERROR', data);
-  }
-
-  /**
-   * Emoji selon le niveau
-   */
-  getEmoji(level) {
-    const emojis = {
-      DEBUG: '🔍',
-      INFO: 'ℹ️',
-      WARN: '⚠️',
-      ERROR: '❌'
-    };
-    return emojis[level] || 'ℹ️';
-  }
-
-  /**
-   * Définit le niveau de logging
-   */
-  setLevel(level) {
-    if (this.levels[level] !== undefined) {
-      this.currentLevel = this.levels[level];
-    }
-  }
-}
-
-// Instance globale
-const logger = new Logger();
-
-/**
- * Log avec timestamp (wrapper pour compatibilité)
- * @param {string} message - Message à logger
- * @param {string} level - Niveau (INFO, WARN, ERROR, DEBUG)
- */
-function logWithTimestamp(message, level = 'INFO') {
-  logger.log(message, level);
-}
-
 // ========================================
 // CONVERSIONS DE DONNÉES
 // ========================================

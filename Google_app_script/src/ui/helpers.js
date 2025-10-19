@@ -126,7 +126,7 @@ function geocodeQuartiersUI(villeId, secteurId, skipExisting, batchSize) {
             geocodeQuartier(quartiers[i].id);
             success++;
         } catch (e) {
-            Logger.log(`Erreur quartier ${quartiers[i].id}: ${e.message}`);
+            console.log(`Erreur quartier ${quartiers[i].id}: ${e.message}`);
             errors++;
         }
 
@@ -149,7 +149,7 @@ function geocodeVillesUI(villeIds) {
             geocodeVille(id);
             success++;
         } catch (e) {
-            Logger.log(`Erreur ville ${id}: ${e.message}`);
+            console.log(`Erreur ville ${id}: ${e.message}`);
         }
 
         if (index < villeIds.length - 1) {
@@ -276,7 +276,7 @@ function calculateCentroidsUI(villeId) {
             calculateSecteurCentroid(secteur.id);
             success++;
         } catch (e) {
-            Logger.log(`Erreur secteur ${secteur.id}: ${e.message}`);
+            console.log(`Erreur secteur ${secteur.id}: ${e.message}`);
             errors++;
         }
     });
@@ -367,7 +367,7 @@ function generateReportUI(options) {
         createReportCharts(sheet, villes, quartiers);
     }
 
-    Logger.log('✅ Rapport généré avec succès');
+    console.log('✅ Rapport généré avec succès');
 }
 
 /**

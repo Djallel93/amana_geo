@@ -7,47 +7,47 @@
  * Test complet du géocodage
  */
 function testGeocodage() {
-  Logger.log('========== TEST GÉOCODAGE ==========');
+  console.log('========== TEST GÉOCODAGE ==========');
 
   // Test 1: Adresse valide
-  Logger.log('\n--- Test 1: Adresse valide ---');
+  console.log('\n--- Test 1: Adresse valide ---');
   const result1 = geocodeAddress('34 Rue de la Paix, 44000 Nantes');
-  Logger.log(JSON.stringify(result1, null, 2));
+  console.log(JSON.stringify(result1, null, 2));
 
   // Test 2: Adresse invalide
-  Logger.log('\n--- Test 2: Adresse invalide ---');
+  console.log('\n--- Test 2: Adresse invalide ---');
   const result2 = geocodeAddress('adressebidonquinexistepas123456');
-  Logger.log(JSON.stringify(result2, null, 2));
+  console.log(JSON.stringify(result2, null, 2));
 
   // Test 3: Validation d'adresse
-  Logger.log('\n--- Test 3: Validation ---');
+  console.log('\n--- Test 3: Validation ---');
   const isValid = validateAddress('1 Place Bellecour, 69002 Lyon');
-  Logger.log(`Adresse valide: ${isValid}`);
+  console.log(`Adresse valide: ${isValid}`);
 
   // Test 4: Géocodage inversé
-  Logger.log('\n--- Test 4: Géocodage inversé ---');
+  console.log('\n--- Test 4: Géocodage inversé ---');
   const result4 = reverseGeocode(47.2173, -1.5536);
-  Logger.log(JSON.stringify(result4, null, 2));
+  console.log(JSON.stringify(result4, null, 2));
 
-  Logger.log('\n✅ Tests géocodage terminés');
+  console.log('\n✅ Tests géocodage terminés');
 }
 
 /**
  * Test des calculs de distance
  */
 function testDistances() {
-  Logger.log('========== TEST DISTANCES ==========');
+  console.log('========== TEST DISTANCES ==========');
 
   // Test 1: Distance simple
-  Logger.log('\n--- Test 1: Distance simple ---');
+  console.log('\n--- Test 1: Distance simple ---');
   const distance = calculateDistance(
     48.8566, 2.3522,  // Paris
     47.2173, -1.5536  // Nantes
   );
-  Logger.log(`Distance Paris-Nantes: ${distance} km`);
+  console.log(`Distance Paris-Nantes: ${distance} km`);
 
   // Test 2: Distances multiples
-  Logger.log('\n--- Test 2: Distances multiples ---');
+  console.log('\n--- Test 2: Distances multiples ---');
   const destinations = [
     { name: 'Lyon', lat: 45.7640, lng: 4.8357 },
     { name: 'Marseille', lat: 43.2965, lng: 5.3698 },
@@ -56,96 +56,96 @@ function testDistances() {
 
   const distances = calculateDistances(48.8566, 2.3522, destinations);
   distances.forEach(d => {
-    Logger.log(`${d.name}: ${d.distance} km`);
+    console.log(`${d.name}: ${d.distance} km`);
   });
 
   // Test 3: Point le plus proche
-  Logger.log('\n--- Test 3: Point le plus proche ---');
+  console.log('\n--- Test 3: Point le plus proche ---');
   const nearest = findNearestPoint(48.8566, 2.3522, destinations);
-  Logger.log(`Ville la plus proche de Paris: ${nearest.name} (${nearest.distance} km)`);
+  console.log(`Ville la plus proche de Paris: ${nearest.name} (${nearest.distance} km)`);
 
   // Test 4: Centroïde
-  Logger.log('\n--- Test 4: Centroïde ---');
+  console.log('\n--- Test 4: Centroïde ---');
   const centroid = calculateCentroid(destinations);
-  Logger.log(`Centroïde: ${centroid.latitude}, ${centroid.longitude}`);
+  console.log(`Centroïde: ${centroid.latitude}, ${centroid.longitude}`);
 
-  Logger.log('\n✅ Tests distances terminés');
+  console.log('\n✅ Tests distances terminés');
 }
 
 /**
  * Test de la recherche de quartiers
  */
 function testQuartiers() {
-  Logger.log('========== TEST QUARTIERS ==========');
+  console.log('========== TEST QUARTIERS ==========');
 
   // Test 1: Récupérer tous les quartiers
-  Logger.log('\n--- Test 1: Tous les quartiers ---');
+  console.log('\n--- Test 1: Tous les quartiers ---');
   const allQuartiers = getAllQuartiers();
-  Logger.log(`${allQuartiers.length} quartiers en base`);
+  console.log(`${allQuartiers.length} quartiers en base`);
   if (allQuartiers.length > 0) {
-    Logger.log(`Premier quartier: ${JSON.stringify(allQuartiers[0], null, 2)}`);
+    console.log(`Premier quartier: ${JSON.stringify(allQuartiers[0], null, 2)}`);
   }
 
   // Test 2: Trouver quartier le plus proche
-  Logger.log('\n--- Test 2: Quartier le plus proche ---');
+  console.log('\n--- Test 2: Quartier le plus proche ---');
   if (allQuartiers.length > 0) {
     // Utiliser les coordonnées de Nantes comme exemple
     const nearest = findNearestQuartier(47.2173, -1.5536);
     if (nearest) {
-      Logger.log(`Quartier trouvé: ${nearest.quartierName} à ${nearest.distance} km`);
+      console.log(`Quartier trouvé: ${nearest.quartierName} à ${nearest.distance} km`);
     } else {
-      Logger.log('Aucun quartier trouvé dans le rayon');
+      console.log('Aucun quartier trouvé dans le rayon');
     }
   }
 
   // Test 3: Quartiers dans un rayon
-  Logger.log('\n--- Test 3: Quartiers dans rayon 10km ---');
+  console.log('\n--- Test 3: Quartiers dans rayon 10km ---');
   if (allQuartiers.length > 0) {
     const inRadius = findQuartiersInRadius(47.2173, -1.5536, 10);
-    Logger.log(`${inRadius.length} quartiers trouvés dans 10 km`);
+    console.log(`${inRadius.length} quartiers trouvés dans 10 km`);
     inRadius.slice(0, 3).forEach(q => {
-      Logger.log(`- ${q.quartierName}: ${q.distance} km`);
+      console.log(`- ${q.quartierName}: ${q.distance} km`);
     });
   }
 
-  Logger.log('\n✅ Tests quartiers terminés');
+  console.log('\n✅ Tests quartiers terminés');
 }
 
 /**
  * Test des villes
  */
 function testVilles() {
-  Logger.log('========== TEST VILLES ==========');
+  console.log('========== TEST VILLES ==========');
 
   // Test 1: Récupérer toutes les villes
-  Logger.log('\n--- Test 1: Toutes les villes ---');
+  console.log('\n--- Test 1: Toutes les villes ---');
   const allVilles = getAllVilles();
-  Logger.log(`${allVilles.length} villes en base`);
+  console.log(`${allVilles.length} villes en base`);
   if (allVilles.length > 0) {
-    Logger.log(`Première ville: ${JSON.stringify(allVilles[0], null, 2)}`);
+    console.log(`Première ville: ${JSON.stringify(allVilles[0], null, 2)}`);
   }
 
   // Test 2: Recherche par code postal
-  Logger.log('\n--- Test 2: Recherche par code postal ---');
+  console.log('\n--- Test 2: Recherche par code postal ---');
   const villesByCP = getVillesByCodePostal('44000');
-  Logger.log(`${villesByCP.length} ville(s) avec code postal 44000`);
+  console.log(`${villesByCP.length} ville(s) avec code postal 44000`);
 
   // Test 3: Recherche par nom
-  Logger.log('\n--- Test 3: Recherche par nom ---');
+  console.log('\n--- Test 3: Recherche par nom ---');
   const villesByName = searchVillesByName('Nantes');
-  Logger.log(`${villesByName.length} ville(s) contenant "Nantes"`);
+  console.log(`${villesByName.length} ville(s) contenant "Nantes"`);
 
-  Logger.log('\n✅ Tests villes terminés');
+  console.log('\n✅ Tests villes terminés');
 }
 
 /**
  * Test de l'API endpoint (simulation)
  */
 function testAPIEndpoint() {
-  Logger.log('========== TEST API ENDPOINT ==========');
+  console.log('========== TEST API ENDPOINT ==========');
 
   // Simuler une requête GET
-  Logger.log('\n--- Test 1: Géocodage via API ---');
+  console.log('\n--- Test 1: Géocodage via API ---');
   const mockRequest1 = {
     parameter: {
       action: 'geocode',
@@ -154,10 +154,10 @@ function testAPIEndpoint() {
   };
 
   const response1 = doGet(mockRequest1);
-  Logger.log(response1.getContent());
+  console.log(response1.getContent());
 
   // Test 2: Trouver quartier
-  Logger.log('\n--- Test 2: Trouver quartier via API ---');
+  console.log('\n--- Test 2: Trouver quartier via API ---');
   const mockRequest2 = {
     parameter: {
       action: 'findQuartier',
@@ -167,10 +167,10 @@ function testAPIEndpoint() {
   };
 
   const response2 = doGet(mockRequest2);
-  Logger.log(response2.getContent());
+  console.log(response2.getContent());
 
   // Test 3: Calculer distance
-  Logger.log('\n--- Test 3: Calculer distance via API ---');
+  console.log('\n--- Test 3: Calculer distance via API ---');
   const mockRequest3 = {
     parameter: {
       action: 'calculateDistance',
@@ -182,10 +182,10 @@ function testAPIEndpoint() {
   };
 
   const response3 = doGet(mockRequest3);
-  Logger.log(response3.getContent());
+  console.log(response3.getContent());
 
   // Test 4: Ping
-  Logger.log('\n--- Test 4: Ping API ---');
+  console.log('\n--- Test 4: Ping API ---');
   const mockRequest4 = {
     parameter: {
       action: 'ping'
@@ -193,75 +193,75 @@ function testAPIEndpoint() {
   };
 
   const response4 = doGet(mockRequest4);
-  Logger.log(response4.getContent());
+  console.log(response4.getContent());
 
-  Logger.log('\n✅ Tests API terminés');
+  console.log('\n✅ Tests API terminés');
 }
 
 /**
  * Test du cache
  */
 function testCache() {
-  Logger.log('========== TEST CACHE ==========');
+  console.log('========== TEST CACHE ==========');
 
   // Test 1: Mise en cache
-  Logger.log('\n--- Test 1: Mise en cache ---');
+  console.log('\n--- Test 1: Mise en cache ---');
   const testData = { message: 'Test cache', timestamp: new Date().toISOString() };
   setCache('test_key', testData, 600);
-  Logger.log('Données mises en cache');
+  console.log('Données mises en cache');
 
   // Test 2: Récupération du cache
-  Logger.log('\n--- Test 2: Récupération ---');
+  console.log('\n--- Test 2: Récupération ---');
   const cached = getCache('test_key');
-  Logger.log(`Données récupérées: ${JSON.stringify(cached)}`);
+  console.log(`Données récupérées: ${JSON.stringify(cached)}`);
 
   // Test 3: Cache miss
-  Logger.log('\n--- Test 3: Cache miss ---');
+  console.log('\n--- Test 3: Cache miss ---');
   const notCached = getCache('key_inexistante');
-  Logger.log(`Résultat: ${notCached}`);
+  console.log(`Résultat: ${notCached}`);
 
-  Logger.log('\n✅ Tests cache terminés');
+  console.log('\n✅ Tests cache terminés');
 }
 
 /**
  * Test complet de création de données
  */
 function testCreateData() {
-  Logger.log('========== TEST CRÉATION DONNÉES ==========');
+  console.log('========== TEST CRÉATION DONNÉES ==========');
 
   try {
     // Test 1: Créer une ville
-    Logger.log('\n--- Test 1: Créer une ville ---');
+    console.log('\n--- Test 1: Créer une ville ---');
     const ville = createVille({
       nom: 'Nantes',
       codePostal: '44000',
       departement: 'Loire-Atlantique',
       pays: 'France'
     });
-    Logger.log(`Ville créée: ${JSON.stringify(ville)}`);
+    console.log(`Ville créée: ${JSON.stringify(ville)}`);
 
     // Test 2: Créer un secteur
-    Logger.log('\n--- Test 2: Créer un secteur ---');
+    console.log('\n--- Test 2: Créer un secteur ---');
     const secteur = createSecteur({
       nom: 'Centre',
       idVille: ville.id
     });
-    Logger.log(`Secteur créé: ${JSON.stringify(secteur)}`);
+    console.log(`Secteur créé: ${JSON.stringify(secteur)}`);
 
     // Test 3: Créer un quartier
-    Logger.log('\n--- Test 3: Créer un quartier ---');
+    console.log('\n--- Test 3: Créer un quartier ---');
     const quartier = createQuartier({
       nom: 'Centre-Ville',
       latitude: 47.2173,
       longitude: -1.5536,
       idSecteur: secteur.id
     });
-    Logger.log(`Quartier créé: ${JSON.stringify(quartier)}`);
+    console.log(`Quartier créé: ${JSON.stringify(quartier)}`);
 
-    Logger.log('\n✅ Tests création terminés');
+    console.log('\n✅ Tests création terminés');
 
   } catch (e) {
-    Logger.log(`❌ Erreur: ${e.message}`);
+    console.log(`❌ Erreur: ${e.message}`);
   }
 }
 
@@ -269,7 +269,7 @@ function testCreateData() {
  * Test de géocodage batch
  */
 function testBatchGeocode() {
-  Logger.log('========== TEST BATCH GÉOCODAGE ==========');
+  console.log('========== TEST BATCH GÉOCODAGE ==========');
 
   const addresses = [
     '1 Place Bellecour, Lyon',
@@ -279,45 +279,45 @@ function testBatchGeocode() {
     'Grand Place, Lille'
   ];
 
-  Logger.log(`Géocodage de ${addresses.length} adresses...`);
+  console.log(`Géocodage de ${addresses.length} adresses...`);
 
   const results = geocodeAddressesBatch(addresses);
 
   results.forEach(result => {
     if (result.isValid) {
-      Logger.log(`✅ ${result.address}`);
-      Logger.log(`   → ${result.coordinates.latitude}, ${result.coordinates.longitude}`);
+      console.log(`✅ ${result.address}`);
+      console.log(`   → ${result.coordinates.latitude}, ${result.coordinates.longitude}`);
     } else {
-      Logger.log(`❌ ${result.address}: ${result.error}`);
+      console.log(`❌ ${result.address}: ${result.error}`);
     }
   });
 
-  Logger.log('\n✅ Test batch terminé');
+  console.log('\n✅ Test batch terminé');
 }
 
 /**
  * Test de géocodage d'un quartier
  */
 function testGeocodeQuartier() {
-  Logger.log('========== TEST GÉOCODAGE QUARTIER ==========');
+  console.log('========== TEST GÉOCODAGE QUARTIER ==========');
 
   // Récupérer le premier quartier
   const quartiers = getAllQuartiers();
 
   if (quartiers.length === 0) {
-    Logger.log('⚠️ Aucun quartier en base pour tester');
+    console.log('⚠️ Aucun quartier en base pour tester');
     return;
   }
 
   const quartier = quartiers[0];
-  Logger.log(`Test avec quartier: ${quartier.nom} (ID: ${quartier.id})`);
+  console.log(`Test avec quartier: ${quartier.nom} (ID: ${quartier.id})`);
 
   try {
     const result = geocodeQuartier(quartier.id);
-    Logger.log(`Résultat: ${JSON.stringify(result, null, 2)}`);
-    Logger.log('\n✅ Géocodage quartier réussi');
+    console.log(`Résultat: ${JSON.stringify(result, null, 2)}`);
+    console.log('\n✅ Géocodage quartier réussi');
   } catch (e) {
-    Logger.log(`❌ Erreur: ${e.message}`);
+    console.log(`❌ Erreur: ${e.message}`);
   }
 }
 
@@ -325,25 +325,25 @@ function testGeocodeQuartier() {
  * Test de performance
  */
 function testPerformance() {
-  Logger.log('========== TEST PERFORMANCE ==========');
+  console.log('========== TEST PERFORMANCE ==========');
 
   // Test 1: Géocodage sans cache
-  Logger.log('\n--- Test 1: Géocodage (premier appel) ---');
+  console.log('\n--- Test 1: Géocodage (premier appel) ---');
   const start1 = new Date().getTime();
   geocodeAddress('1 Place Bellecour, Lyon');
   const duration1 = new Date().getTime() - start1;
-  Logger.log(`Durée: ${duration1}ms`);
+  console.log(`Durée: ${duration1}ms`);
 
   // Test 2: Géocodage avec cache
-  Logger.log('\n--- Test 2: Géocodage (avec cache) ---');
+  console.log('\n--- Test 2: Géocodage (avec cache) ---');
   const start2 = new Date().getTime();
   geocodeAddress('1 Place Bellecour, Lyon');
   const duration2 = new Date().getTime() - start2;
-  Logger.log(`Durée: ${duration2}ms`);
-  Logger.log(`Amélioration: ${Math.round((1 - duration2 / duration1) * 100)}%`);
+  console.log(`Durée: ${duration2}ms`);
+  console.log(`Amélioration: ${Math.round((1 - duration2 / duration1) * 100)}%`);
 
   // Test 3: Calcul de distances multiples
-  Logger.log('\n--- Test 3: 100 calculs de distance ---');
+  console.log('\n--- Test 3: 100 calculs de distance ---');
   const destinations = [];
   for (let i = 0; i < 100; i++) {
     destinations.push({
@@ -355,21 +355,21 @@ function testPerformance() {
   const start3 = new Date().getTime();
   calculateDistances(47.2173, -1.5536, destinations);
   const duration3 = new Date().getTime() - start3;
-  Logger.log(`Durée pour 100 calculs: ${duration3}ms`);
-  Logger.log(`Moyenne: ${(duration3 / 100).toFixed(2)}ms par calcul`);
+  console.log(`Durée pour 100 calculs: ${duration3}ms`);
+  console.log(`Moyenne: ${(duration3 / 100).toFixed(2)}ms par calcul`);
 
-  Logger.log('\n✅ Tests performance terminés');
+  console.log('\n✅ Tests performance terminés');
 }
 
 /**
  * Initialise des données de test dans les sheets
  */
 function initTestData() {
-  Logger.log('========== INITIALISATION DONNÉES TEST ==========');
+  console.log('========== INITIALISATION DONNÉES TEST ==========');
 
   try {
     // Créer quelques villes
-    Logger.log('\n📍 Création des villes...');
+    console.log('\n📍 Création des villes...');
     const villes = [
       { nom: 'Nantes', codePostal: '44000', departement: 'Loire-Atlantique', pays: 'France' },
       { nom: 'Saint-Nazaire', codePostal: '44600', departement: 'Loire-Atlantique', pays: 'France' },
@@ -380,11 +380,11 @@ function initTestData() {
     villes.forEach(v => {
       const ville = createVille(v);
       villesCreated.push(ville);
-      Logger.log(`✅ ${ville.nom} créée (ID: ${ville.id})`);
+      console.log(`✅ ${ville.nom} créée (ID: ${ville.id})`);
     });
 
     // Créer des secteurs pour chaque ville
-    Logger.log('\n📍 Création des secteurs...');
+    console.log('\n📍 Création des secteurs...');
     const secteurNames = ['Centre', 'Nord', 'Sud', 'Est', 'Ouest'];
     const secteursCreated = [];
 
@@ -395,12 +395,12 @@ function initTestData() {
           idVille: ville.id
         });
         secteursCreated.push(secteur);
-        Logger.log(`✅ ${ville.nom} - ${nom} créé (ID: ${secteur.id})`);
+        console.log(`✅ ${ville.nom} - ${nom} créé (ID: ${secteur.id})`);
       });
     });
 
     // Créer quelques quartiers de test
-    Logger.log('\n📍 Création des quartiers...');
+    console.log('\n📍 Création des quartiers...');
     const quartiers = [
       { nom: 'Bouffay', lat: 47.2121, lng: -1.5555, secteurId: secteursCreated[0].id },
       { nom: 'Graslin', lat: 47.2135, lng: -1.5656, secteurId: secteursCreated[0].id },
@@ -415,14 +415,14 @@ function initTestData() {
         longitude: q.lng,
         idSecteur: q.secteurId
       });
-      Logger.log(`✅ ${quartier.nom} créé (ID: ${quartier.id})`);
+      console.log(`✅ ${quartier.nom} créé (ID: ${quartier.id})`);
     });
 
-    Logger.log('\n✅ Initialisation terminée avec succès !');
-    Logger.log(`${villesCreated.length} villes, ${secteursCreated.length} secteurs, ${quartiers.length} quartiers`);
+    console.log('\n✅ Initialisation terminée avec succès !');
+    console.log(`${villesCreated.length} villes, ${secteursCreated.length} secteurs, ${quartiers.length} quartiers`);
 
   } catch (e) {
-    Logger.log(`❌ Erreur lors de l'initialisation: ${e.message}`);
+    console.log(`❌ Erreur lors de l'initialisation: ${e.message}`);
   }
 }
 
@@ -430,9 +430,9 @@ function initTestData() {
  * Lance tous les tests
  */
 function runAllTests() {
-  Logger.log('╔════════════════════════════════════════╗');
-  Logger.log('║   SUITE DE TESTS COMPLÈTE - GEO API   ║');
-  Logger.log('╚════════════════════════════════════════╝\n');
+  console.log('╔════════════════════════════════════════╗');
+  console.log('║   SUITE DE TESTS COMPLÈTE - GEO API   ║');
+  console.log('╚════════════════════════════════════════╝\n');
 
   testCache();
   testDistances();
@@ -442,17 +442,17 @@ function runAllTests() {
   testAPIEndpoint();
   testPerformance();
 
-  Logger.log('\n╔════════════════════════════════════════╗');
-  Logger.log('║      TOUS LES TESTS SONT TERMINÉS      ║');
-  Logger.log('╚════════════════════════════════════════╝');
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║      TOUS LES TESTS SONT TERMINÉS      ║');
+  console.log('╚════════════════════════════════════════╝');
 }
 
 /**
  * Nettoie toutes les données de test
  */
 function cleanTestData() {
-  Logger.log('⚠️ ATTENTION: Cette fonction va supprimer TOUTES les données !');
-  Logger.log('Commentez cette ligne si vous êtes sûr:');
+  console.log('⚠️ ATTENTION: Cette fonction va supprimer TOUTES les données !');
+  console.log('Commentez cette ligne si vous êtes sûr:');
   return;
 
   // Décommenter pour exécuter
@@ -465,10 +465,10 @@ function cleanTestData() {
     
     if (lastRow > 1) {
       sheet.deleteRows(2, lastRow - 1);
-      Logger.log(`✅ ${sheetName} nettoyé`);
+      console.log(`✅ ${sheetName} nettoyé`);
     }
   });
   
-  Logger.log('✅ Nettoyage terminé');
+  console.log('✅ Nettoyage terminé');
   */
 }

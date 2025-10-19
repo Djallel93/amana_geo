@@ -24,7 +24,7 @@ class QuartierCache {
         return JSON.parse(cached);
       }
     } catch (e) {
-      Logger.log(`⚠️ Erreur lecture cache quartiers: ${e.message}`);
+      console.log(`⚠️ Erreur lecture cache quartiers: ${e.message}`);
     }
     return null;
   }
@@ -33,7 +33,7 @@ class QuartierCache {
     try {
       this.cache.put(this.CACHE_KEY, JSON.stringify(quartiers), this.CACHE_DURATION);
     } catch (e) {
-      Logger.log(`⚠️ Erreur écriture cache quartiers: ${e.message}`);
+      console.log(`⚠️ Erreur écriture cache quartiers: ${e.message}`);
     }
   }
 
@@ -62,11 +62,11 @@ function getAllQuartiers(hasCoordinates = true) {
     const cached = CacheService.getScriptCache().get(cacheKey);
     if (cached) {
       quartiers = JSON.parse(cached);
-      Logger.log(`✅ Cache HIT: ${quartiers.length} quartiers`);
+      console.log(`✅ Cache HIT: ${quartiers.length} quartiers`);
       return quartiers;
     }
   } catch (e) {
-    Logger.log(`⚠️ Erreur cache: ${e.message}`);
+    console.log(`⚠️ Erreur cache: ${e.message}`);
   }
 
   // Charger depuis le sheet
@@ -103,13 +103,13 @@ function getAllQuartiers(hasCoordinates = true) {
     })
     .filter(q => q !== null);
 
-  Logger.log(`📋 ${quartiers.length} quartiers chargés depuis le sheet`);
+  console.log(`📋 ${quartiers.length} quartiers chargés depuis le sheet`);
 
   // Mettre en cache
   try {
     CacheService.getScriptCache().put(cacheKey, JSON.stringify(quartiers), 600);
   } catch (e) {
-    Logger.log(`⚠️ Erreur mise en cache: ${e.message}`);
+    console.log(`⚠️ Erreur mise en cache: ${e.message}`);
   }
 
   return quartiers;

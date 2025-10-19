@@ -78,7 +78,7 @@ function onOpen() {
         .addItem('📖 Documentation', 'showDocumentationDialog')
         .addToUi();
 
-    Logger.log('✅ Menu AMANA créé');
+    console.log('✅ Menu AMANA créé');
 }
 
 // ========================================

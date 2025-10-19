@@ -62,7 +62,7 @@ class AuthCache {
      */
     clear() {
         // Note: removeAll n'est pas disponible, on ne peut pas nettoyer sélectivement
-        Logger.log('Cache auth: nettoyage demandé (expire automatiquement)');
+        console.log('Cache auth: nettoyage demandé (expire automatiquement)');
     }
 }
 
@@ -125,7 +125,7 @@ function getAuthorizedEmails() {
         const emails = JSON.parse(emailsJson);
         return Array.isArray(emails) ? emails : [];
     } catch (e) {
-        Logger.log(`⚠️ Erreur parsing emails: ${e.message}`);
+        console.log(`⚠️ Erreur parsing emails: ${e.message}`);
         return [];
     }
 }
@@ -145,7 +145,7 @@ function getAuthorizedDomains() {
         const domains = JSON.parse(domainsJson);
         return Array.isArray(domains) ? domains : [];
     } catch (e) {
-        Logger.log(`⚠️ Erreur parsing domaines: ${e.message}`);
+        console.log(`⚠️ Erreur parsing domaines: ${e.message}`);
         return [];
     }
 }
@@ -179,7 +179,7 @@ function addAuthorizedEmail(email) {
     // Invalider le cache
     authCache.invalidateEmail(emailLower);
 
-    Logger.log(`✅ Email ajouté: ${emailLower}`);
+    console.log(`✅ Email ajouté: ${emailLower}`);
     return true;
 }
 
@@ -203,7 +203,7 @@ function removeAuthorizedEmail(email) {
     // Invalider le cache
     authCache.invalidateEmail(emailLower);
 
-    Logger.log(`✅ Email retiré: ${emailLower}`);
+    console.log(`✅ Email retiré: ${emailLower}`);
     return true;
 }
 
@@ -233,7 +233,7 @@ function addAuthorizedDomain(domain) {
     const props = PropertiesService.getScriptProperties();
     props.setProperty('AUTHORIZED_DOMAINS', JSON.stringify(domains));
 
-    Logger.log(`✅ Domaine ajouté: ${domainLower}`);
+    console.log(`✅ Domaine ajouté: ${domainLower}`);
     return true;
 }
 
@@ -254,7 +254,7 @@ function removeAuthorizedDomain(domain) {
     const props = PropertiesService.getScriptProperties();
     props.setProperty('AUTHORIZED_DOMAINS', JSON.stringify(domains));
 
-    Logger.log(`✅ Domaine retiré: ${domainLower}`);
+    console.log(`✅ Domaine retiré: ${domainLower}`);
     return true;
 }
 
@@ -294,7 +294,7 @@ function generateAPIToken(name, expiryDays) {
     tokens[token] = tokenData;
     saveTokens(tokens);
 
-    Logger.log(`✅ Token créé: ${name} (expire le ${expiryDate.toLocaleDateString('fr-FR')})`);
+    console.log(`✅ Token créé: ${name} (expire le ${expiryDate.toLocaleDateString('fr-FR')})`);
 
     return tokenData;
 }
@@ -319,7 +319,7 @@ function validateAPIToken(token) {
     const tokenData = tokens[token];
 
     if (!tokenData) {
-        Logger.log(`⚠️ Token invalide: ${token.substring(0, 8)}...`);
+        console.log(`⚠️ Token invalide: ${token.substring(0, 8)}...`);
         return { valid: false, reason: 'Token invalide' };
     }
 
@@ -340,7 +340,7 @@ function validateAPIToken(token) {
         tokens[token] = tokenData;
         saveTokens(tokens);
     } catch (e) {
-        Logger.log(`⚠️ Erreur mise à jour token: ${e.message}`);
+        console.log(`⚠️ Erreur mise à jour token: ${e.message}`);
     }
 
     return { valid: true, reason: 'OK', tokenData: tokenData };
@@ -362,7 +362,7 @@ function revokeAPIToken(token) {
     tokens[token] = tokenData;
     saveTokens(tokens);
 
-    Logger.log(`✅ Token révoqué: ${tokenData.name}`);
+    console.log(`✅ Token révoqué: ${tokenData.name}`);
     return true;
 }
 
@@ -380,7 +380,7 @@ function deleteAPIToken(token) {
     delete tokens[token];
     saveTokens(tokens);
 
-    Logger.log(`✅ Token supprimé: ${name}`);
+    console.log(`✅ Token supprimé: ${name}`);
     return true;
 }
 
@@ -423,7 +423,7 @@ function getAllTokens() {
         const tokens = JSON.parse(tokensJson);
         return typeof tokens === 'object' && tokens !== null ? tokens : {};
     } catch (e) {
-        Logger.log(`⚠️ Erreur parsing tokens: ${e.message}`);
+        console.log(`⚠️ Erreur parsing tokens: ${e.message}`);
         return {};
     }
 }
@@ -460,13 +460,13 @@ function checkUIAuthentication() {
         }
 
         if (!isEmailAuthorized(email)) {
-            Logger.log(`⚠️ Accès refusé pour: ${email}`);
+            console.log(`⚠️ Accès refusé pour: ${email}`);
             return { authorized: false, email: email, reason: 'Email non autorisé' };
         }
 
         return { authorized: true, email: email, reason: 'OK' };
     } catch (e) {
-        Logger.log(`⚠️ Erreur authentification UI: ${e.message}`);
+        console.log(`⚠️ Erreur authentification UI: ${e.message}`);
         return { authorized: false, email: null, reason: 'Erreur système' };
     }
 }
@@ -518,8 +518,8 @@ function setupAuthentication() {
         props.setProperty('API_TOKENS', JSON.stringify({}));
     }
 
-    Logger.log('✅ Système d\'authentification initialisé');
-    Logger.log('⚠️ IMPORTANT: Ajoutez au moins un email autorisé avec addAuthorizedEmail()');
+    console.log('✅ Système d\'authentification initialisé');
+    console.log('⚠️ IMPORTANT: Ajoutez au moins un email autorisé avec addAuthorizedEmail()');
 }
 
 /**
@@ -536,12 +536,12 @@ function authorizeCurrentUser() {
         const added = addAuthorizedEmail(email);
 
         if (added) {
-            Logger.log(`✅ Utilisateur ${email} autorisé`);
+            console.log(`✅ Utilisateur ${email} autorisé`);
         } else {
-            Logger.log(`ℹ️ ${email} est déjà autorisé`);
+            console.log(`ℹ️ ${email} est déjà autorisé`);
         }
     } catch (e) {
-        Logger.log(`❌ Erreur: ${e.message}`);
+        console.log(`❌ Erreur: ${e.message}`);
         throw e;
     }
 }
@@ -566,7 +566,7 @@ function cleanupExpiredTokens() {
 
     if (cleaned > 0) {
         saveTokens(tokens);
-        Logger.log(`✅ ${cleaned} token(s) expiré(s) supprimé(s)`);
+        console.log(`✅ ${cleaned} token(s) expiré(s) supprimé(s)`);
     }
 
     return cleaned;
@@ -580,30 +580,30 @@ function cleanupExpiredTokens() {
  * Affiche l'état de l'authentification
  */
 function showAuthStatus() {
-    Logger.log('=== ÉTAT DE L\'AUTHENTIFICATION ===\n');
+    console.log('=== ÉTAT DE L\'AUTHENTIFICATION ===\n');
 
-    Logger.log('Configuration:');
-    Logger.log(`- Email Auth: ${AUTH_CONFIG.ENABLE_EMAIL_AUTH ? 'ACTIVÉE' : 'DÉSACTIVÉE'}`);
-    Logger.log(`- Token Auth: ${AUTH_CONFIG.ENABLE_TOKEN_AUTH ? 'ACTIVÉE' : 'DÉSACTIVÉE'}`);
-    Logger.log('');
+    console.log('Configuration:');
+    console.log(`- Email Auth: ${AUTH_CONFIG.ENABLE_EMAIL_AUTH ? 'ACTIVÉE' : 'DÉSACTIVÉE'}`);
+    console.log(`- Token Auth: ${AUTH_CONFIG.ENABLE_TOKEN_AUTH ? 'ACTIVÉE' : 'DÉSACTIVÉE'}`);
+    console.log('');
 
     const emails = getAuthorizedEmails();
-    Logger.log(`Emails autorisés: ${emails.length}`);
-    emails.forEach(email => Logger.log(`  - ${email}`));
-    Logger.log('');
+    console.log(`Emails autorisés: ${emails.length}`);
+    emails.forEach(email => console.log(`  - ${email}`));
+    console.log('');
 
     const domains = getAuthorizedDomains();
-    Logger.log(`Domaines autorisés: ${domains.length}`);
-    domains.forEach(domain => Logger.log(`  - *@${domain}`));
-    Logger.log('');
+    console.log(`Domaines autorisés: ${domains.length}`);
+    domains.forEach(domain => console.log(`  - *@${domain}`));
+    console.log('');
 
     const tokens = listAPITokens();
-    Logger.log(`Tokens API: ${tokens.length}`);
+    console.log(`Tokens API: ${tokens.length}`);
     tokens.forEach(token => {
         const status = token.active ? '✅ Actif' : '❌ Révoqué';
-        Logger.log(`  - ${token.name} (${token.tokenPrefix}) ${status}`);
-        Logger.log(`    Créé: ${new Date(token.createdAt).toLocaleDateString('fr-FR')}`);
-        Logger.log(`    Expire: ${new Date(token.expiresAt).toLocaleDateString('fr-FR')}`);
-        Logger.log(`    Utilisations: ${token.usageCount}`);
+        console.log(`  - ${token.name} (${token.tokenPrefix}) ${status}`);
+        console.log(`    Créé: ${new Date(token.createdAt).toLocaleDateString('fr-FR')}`);
+        console.log(`    Expire: ${new Date(token.expiresAt).toLocaleDateString('fr-FR')}`);
+        console.log(`    Utilisations: ${token.usageCount}`);
     });
 }

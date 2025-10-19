@@ -93,7 +93,7 @@ function step3_generateAPIToken() {
         ui.alert('🔑 Token API', message, ui.ButtonSet.OK);
 
         // Aussi dans les logs pour faciliter la copie
-        Logger.log('TOKEN GÉNÉRÉ : ' + tokenData.token);
+        console.log('TOKEN GÉNÉRÉ : ' + tokenData.token);
 
     } catch (e) {
         ui.alert(
@@ -674,7 +674,7 @@ function generateMultipleTokens() {
                 message += 'Expire : ' + new Date(tokenData.expiresAt).toLocaleDateString('fr-FR') + '\n\n';
 
                 // Logger pour copie facile
-                Logger.log(config.name + ' TOKEN: ' + tokenData.token);
+                console.log(config.name + ' TOKEN: ' + tokenData.token);
             });
 
             message += '⚠️ Sauvegardez-les dans un endroit sûr !';
@@ -871,7 +871,7 @@ function quickStart() {
         const tokenData = generateAPIToken('QUICKSTART', 365);
         tokenGenerated = tokenData.token;
         results.push('✅ [3/5] Token généré');
-        Logger.log('QUICKSTART TOKEN: ' + tokenData.token);
+        console.log('QUICKSTART TOKEN: ' + tokenData.token);
     } catch (e) {
         results.push('❌ [3/5] Erreur : ' + e.message);
         success = false;

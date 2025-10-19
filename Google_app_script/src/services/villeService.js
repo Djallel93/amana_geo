@@ -25,7 +25,7 @@ function getAllVilles() {
     pays: row[CONFIG.COLUMNS.VILLE.PAYS]
   })).filter(v => v.id);
 
-  Logger.log(`🏙️ ${villes.length} villes chargées`);
+  console.log(`🏙️ ${villes.length} villes chargées`);
 
   return villes;
 }
@@ -211,7 +211,7 @@ function getAllSecteurs() {
     idVille: row[CONFIG.COLUMNS.SECTEUR.ID_VILLE]
   })).filter(s => s.id);
 
-  Logger.log(`📍 ${secteurs.length} secteurs chargés`);
+  console.log(`📍 ${secteurs.length} secteurs chargés`);
 
   return secteurs;
 }

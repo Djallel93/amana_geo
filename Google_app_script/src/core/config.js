@@ -111,6 +111,6 @@ function setupScriptProperties() {
     'ENABLE_AUTH': 'false'
   });
 
-  Logger.log('✅ Propriétés configurées avec succès');
-  Logger.log('⚠️ N\'oubliez pas de modifier SHEET_ID !');
+  console.log('✅ Propriétés configurées avec succès');
+  console.log('⚠️ N\'oubliez pas de modifier SHEET_ID !');
 }
