@@ -261,29 +261,6 @@ function createSuccessResponse(data, message = null) {
 }
 
 // ========================================
-// AUTHENTIFICATION
-// ========================================
-
-/**
- * Vérifie l'authentification par API Key (DÉPRÉCIÉ - Utiliser auth.js)
- * @deprecated Utiliser checkAPIAuthentication() dans auth.js
- */
-function checkAuthentication(apiKey) {
-  console.log('⚠️ checkAuthentication() est déprécié, utilisez checkAPIAuthentication()');
-
-  if (!CONFIG.SECURITY.ENABLE_AUTH) {
-    return true;
-  }
-
-  if (!apiKey || apiKey !== CONFIG.SECURITY.API_KEY) {
-    console.log('⚠️ Authentification échouée');
-    return false;
-  }
-
-  return true;
-}
-
-// ========================================
 // FORMATAGE ET NETTOYAGE
 // ========================================
 

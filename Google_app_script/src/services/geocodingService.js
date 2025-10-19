@@ -3,6 +3,10 @@
  * Utilise Google Maps Geocoding API avec cache pour économiser le quota
  */
 
+// ========================================
+// GÉOCODAGE SIMPLE
+// ========================================
+
 /**
  * Géocode une adresse et retourne les coordonnées + détails
  * @param {string} address - Adresse à géocoder
@@ -14,12 +18,10 @@ function geocodeAddress(address, country = null) {
     throw new Error(CONFIG.ERRORS.MISSING_PARAMETERS);
   }
 
-  // Nettoyer l'adresse
   const cleanedAddress = cleanAddress(address);
   const countryToUse = country || CONFIG.GEO.DEFAULT_COUNTRY;
   const fullAddress = `${cleanedAddress}, ${countryToUse}`;
 
-  // Vérifier le cache
   const cacheKey = getCacheKeyForAddress(fullAddress);
   const cached = getCache(cacheKey);
 
@@ -28,11 +30,10 @@ function geocodeAddress(address, country = null) {
   }
 
   try {
-    console.log(`🔍 Géocodage: ${fullAddress}`, 'INFO');
+    console.log(`🔍 Géocodage: ${fullAddress}`);
 
-    // Appel à l'API Google Maps
     const geocoder = Maps.newGeocoder();
-    geocoder.setRegion('fr'); // Prioriser les résultats français
+    geocoder.setRegion('fr');
     const response = geocoder.geocode(fullAddress);
 
     if (!response.results || response.results.length === 0) {
@@ -41,11 +42,8 @@ function geocodeAddress(address, country = null) {
 
     const result = response.results[0];
     const location = result.geometry.location;
-
-    // Extraire les composants d'adresse
     const components = extractAddressComponents(result.address_components);
 
-    // Construire la réponse
     const geocodingResult = {
       isValid: true,
       coordinates: {
@@ -59,15 +57,13 @@ function geocodeAddress(address, country = null) {
       timestamp: new Date().toISOString()
     };
 
-    // Mettre en cache
     setCache(cacheKey, geocodingResult);
-
-    console.log(`✅ Géocodage réussi: ${location.lat}, ${location.lng}`, 'INFO');
+    console.log(`✅ Géocodage réussi: ${location.lat}, ${location.lng}`);
 
     return geocodingResult;
 
   } catch (e) {
-    console.log(`❌ Erreur géocodage: ${e.message}`, 'ERROR');
+    console.log(`❌ Erreur géocodage: ${e.message}`);
 
     return {
       isValid: false,
@@ -93,6 +89,10 @@ function extractAddressComponents(addressComponents) {
     region: null,
     country: null
   };
+
+  if (!Array.isArray(addressComponents)) {
+    return components;
+  }
 
   addressComponents.forEach(component => {
     const types = component.types;
@@ -123,58 +123,9 @@ function extractAddressComponents(addressComponents) {
   return components;
 }
 
-/**
- * Géocode multiple adresses en batch
- * @param {Array<string>} addresses - Tableau d'adresses
- * @param {number} batchSize - Taille des lots (défaut: config)
- * @returns {Array<Object>} Résultats du géocodage
- */
-function geocodeAddressesBatch(addresses, batchSize = null) {
-  if (!Array.isArray(addresses) || addresses.length === 0) {
-    throw new Error('Tableau d\'adresses vide ou invalide');
-  }
-
-  const size = batchSize || CONFIG.QUOTAS.BATCH_SIZE;
-  const results = [];
-
-  console.log(`🔄 Géocodage batch: ${addresses.length} adresses`, 'INFO');
-
-  // Traiter par lots pour éviter timeouts
-  for (let i = 0; i < addresses.length; i += size) {
-    const batch = addresses.slice(i, i + size);
-
-    batch.forEach((address, index) => {
-      try {
-        const result = geocodeAddress(address);
-        results.push({
-          index: i + index,
-          address: address,
-          ...result
-        });
-
-        // Pause pour éviter rate limiting
-        if ((i + index + 1) % 10 === 0) {
-          Utilities.sleep(500); // 0.5 seconde de pause tous les 10 appels
-        }
-
-      } catch (e) {
-        results.push({
-          index: i + index,
-          address: address,
-          isValid: false,
-          error: e.message
-        });
-      }
-    });
-
-    console.log(`📊 Progression: ${Math.min(i + size, addresses.length)}/${addresses.length}`, 'INFO');
-  }
-
-  const successCount = results.filter(r => r.isValid).length;
-  console.log(`✅ Géocodage terminé: ${successCount}/${addresses.length} réussis`, 'INFO');
-
-  return results;
-}
+// ========================================
+// GÉOCODAGE INVERSÉ
+// ========================================
 
 /**
  * Géocode inversé: trouve l'adresse à partir de coordonnées
@@ -195,7 +146,7 @@ function reverseGeocode(lat, lng) {
   }
 
   try {
-    console.log(`🔍 Géocodage inversé: ${lat}, ${lng}`, 'INFO');
+    console.log(`🔍 Géocodage inversé: ${lat}, ${lng}`);
 
     const geocoder = Maps.newGeocoder();
     const response = geocoder.reverseGeocode(lat, lng);
@@ -223,7 +174,7 @@ function reverseGeocode(lat, lng) {
     return reverseResult;
 
   } catch (e) {
-    console.log(`❌ Erreur géocodage inversé: ${e.message}`, 'ERROR');
+    console.log(`❌ Erreur géocodage inversé: ${e.message}`);
 
     return {
       isValid: false,
@@ -232,6 +183,10 @@ function reverseGeocode(lat, lng) {
     };
   }
 }
+
+// ========================================
+// VALIDATION
+// ========================================
 
 /**
  * Valide une adresse sans récupérer tous les détails
@@ -260,4 +215,59 @@ function normalizeAddress(address) {
   }
 
   return address;
+}
+
+// ========================================
+// GÉOCODAGE BATCH
+// ========================================
+
+/**
+ * Géocode multiple adresses en batch
+ * @param {Array<string>} addresses - Tableau d'adresses
+ * @param {number} batchSize - Taille des lots (défaut: config)
+ * @returns {Array<Object>} Résultats du géocodage
+ */
+function geocodeAddressesBatch(addresses, batchSize = null) {
+  if (!Array.isArray(addresses) || addresses.length === 0) {
+    throw new Error('Tableau d\'adresses vide ou invalide');
+  }
+
+  const size = batchSize || CONFIG.QUOTAS.BATCH_SIZE;
+  const results = [];
+
+  console.log(`🔄 Géocodage batch: ${addresses.length} adresses`);
+
+  for (let i = 0; i < addresses.length; i += size) {
+    const batch = addresses.slice(i, i + size);
+
+    batch.forEach((address, index) => {
+      try {
+        const result = geocodeAddress(address);
+        results.push({
+          index: i + index,
+          address: address,
+          ...result
+        });
+
+        if ((i + index + 1) % 10 === 0) {
+          Utilities.sleep(500);
+        }
+
+      } catch (e) {
+        results.push({
+          index: i + index,
+          address: address,
+          isValid: false,
+          error: e.message
+        });
+      }
+    });
+
+    console.log(`📊 Progression: ${Math.min(i + size, addresses.length)}/${addresses.length}`);
+  }
+
+  const successCount = results.filter(r => r.isValid).length;
+  console.log(`✅ Géocodage terminé: ${successCount}/${addresses.length} réussis`);
+
+  return results;
 }
