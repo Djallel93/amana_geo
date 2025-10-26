@@ -3,10 +3,6 @@
  * Améliorations: cache, validation, performance
  */
 
-// ========================================
-// CACHE POUR PERFORMANCES
-// ========================================
-
 /**
  * Cache des quartiers pour éviter lectures répétées
  */
@@ -43,10 +39,6 @@ class QuartierCache {
 }
 
 const quartierCache = new QuartierCache();
-
-// ========================================
-// RÉCUPÉRATION DES DONNÉES
-// ========================================
 
 /**
  * Récupère tous les quartiers (avec cache)
@@ -173,10 +165,6 @@ function getQuartiersByVille(idVille, hasCoordinates = true) {
   return quartiers.filter(q => secteurIds.has(q.idSecteur));
 }
 
-// ========================================
-// RECHERCHE GÉOGRAPHIQUE
-// ========================================
-
 /**
  * Trouve le quartier le plus proche (OPTIMISÉ avec bounding box)
  * @param {number} lat - Latitude
@@ -296,10 +284,6 @@ function findQuartiersInRadius(lat, lng, radiusKm) {
 
   return results;
 }
-
-// ========================================
-// CRUD OPERATIONS
-// ========================================
 
 /**
  * Crée un nouveau quartier (avec validation renforcée)
@@ -479,16 +463,13 @@ function deleteQuartier(id) {
   return true;
 }
 
-// ========================================
-// GÉOCODAGE
-// ========================================
-
 /**
- * Géocode un quartier (OPTIMISÉ avec meilleure gestion d'erreurs)
+ * Géocode un quartier avec validation et détection de doublons
  * @param {number} id - ID du quartier
- * @returns {Object} Coordonnées trouvées
+ * @param {boolean} strictMode - Mode strict (rejette résultats imprécis)
+ * @returns {Object} Coordonnées trouvées avec warnings
  */
-function geocodeQuartier(id) {
+function geocodeQuartierImproved(id, strictMode = true) {
   const quartier = getQuartierById(id, false);
 
   if (!quartier) {
@@ -506,21 +487,41 @@ function geocodeQuartier(id) {
     throw new Error('Ville introuvable pour ce quartier');
   }
 
-  // Construire l'adresse à géocoder
+  // Construire l'adresse (GARDANT les accents)
   const address = `${quartier.nom}, ${ville.nom}, ${ville.codePostal}, France`;
 
   console.log(`🔍 Géocodage quartier: ${address}`, 'INFO');
 
-  const result = geocodeAddress(address);
+  // Utiliser le géocodage amélioré
+  const result = geocodeAddressImproved(address, null, strictMode);
 
   if (!result.isValid) {
     console.log(`❌ Échec géocodage: ${result.message}`, 'ERROR');
+    
     return {
       success: false,
       quartierId: id,
       quartierName: quartier.nom,
-      error: result.message
+      error: result.error,
+      message: result.message,
+      suggestion: result.suggestion || 'Essayez de géocoder manuellement ou avec une adresse plus précise'
     };
+  }
+
+  // Vérifier si ces coordonnées existent déjà
+  const existingQuartiers = getAllQuartiers(true);
+  const duplicate = existingQuartiers.find(q => 
+    q.id !== id &&
+    Math.abs(q.latitude - result.coordinates.latitude) < 0.0001 &&
+    Math.abs(q.longitude - result.coordinates.longitude) < 0.0001
+  );
+
+  const warningMessage = duplicate 
+    ? `⚠️ ATTENTION: Coordonnées identiques au quartier "${duplicate.nom}" (ID: ${duplicate.id})` 
+    : null;
+
+  if (warningMessage) {
+    console.log(warningMessage, 'WARN');
   }
 
   // Mettre à jour les coordonnées du quartier
@@ -543,47 +544,80 @@ function geocodeQuartier(id) {
     success: true,
     quartierId: id,
     quartierName: quartier.nom,
-    ...result
+    coordinates: result.coordinates,
+    formattedAddress: result.formattedAddress,
+    locationType: result.locationType,
+    warning: warningMessage,
+    components: result.components
   };
 }
 
 /**
- * Géocode tous les quartiers d'une ville (OPTIMISÉ avec batch)
+ * Géocode tous les quartiers d'une ville avec rapport détaillé
  * @param {number} idVille - ID de la ville
- * @returns {Array<Object>} Résultats du géocodage
+ * @param {Object} options - Options de géocodage
+ * @returns {Object} Résultats détaillés avec statistiques
  */
-function geocodeQuartiersOfVille(idVille) {
+function geocodeQuartiersOfVilleImproved(idVille, options = {}) {
+  const {
+    strictMode = true,
+    skipExisting = true,
+    batchSize = 10,
+    pauseBetweenBatches = 2000
+  } = options;
+
   const quartiers = getQuartiersByVille(idVille, false);
 
-  console.log(`🔄 Géocodage de ${quartiers.length} quartiers`, 'INFO');
+  // Filtrer si on skip les existants
+  const quartiersToGeocode = skipExisting 
+    ? quartiers.filter(q => !q.latitude || !q.longitude || isNaN(q.latitude) || isNaN(q.longitude))
+    : quartiers;
 
-  const results = [];
-  let successCount = 0;
-  let errorCount = 0;
+  console.log(`🔄 Géocodage de ${quartiersToGeocode.length}/${quartiers.length} quartiers`, 'INFO');
 
-  quartiers.forEach((quartier, index) => {
+  const results = {
+    total: quartiersToGeocode.length,
+    success: 0,
+    failed: 0,
+    warnings: 0,
+    skipped: quartiers.length - quartiersToGeocode.length,
+    details: []
+  };
+
+  quartiersToGeocode.forEach((quartier, index) => {
+    // Pause entre lots
+    if (index > 0 && index % batchSize === 0) {
+      console.log(`⏸️ Pause après ${index} géocodages...`, 'INFO');
+      Utilities.sleep(pauseBetweenBatches);
+    }
+
     try {
-      const result = geocodeQuartier(quartier.id);
+      const result = geocodeQuartierImproved(quartier.id, strictMode);
 
       if (result.success) {
-        successCount++;
+        results.success++;
+        if (result.warning) {
+          results.warnings++;
+        }
       } else {
-        errorCount++;
+        results.failed++;
       }
 
-      results.push({
+      results.details.push({
         index: index,
+        quartierId: quartier.id,
+        quartierName: quartier.nom,
         ...result
       });
 
-      // Pause pour éviter rate limiting (tous les 10)
-      if ((index + 1) % 10 === 0 && index < quartiers.length - 1) {
+      // Pause légère entre chaque géocodage
+      if (index < quartiersToGeocode.length - 1) {
         Utilities.sleep(500);
       }
 
     } catch (e) {
-      errorCount++;
-      results.push({
+      results.failed++;
+      results.details.push({
         index: index,
         success: false,
         quartierId: quartier.id,
@@ -593,7 +627,99 @@ function geocodeQuartiersOfVille(idVille) {
     }
   });
 
-  console.log(`✅ Géocodage terminé: ${successCount} succès, ${errorCount} échecs`, 'INFO');
+  console.log(`✅ Géocodage terminé: ${results.success} succès, ${results.failed} échecs, ${results.warnings} warnings, ${results.skipped} skipped`, 'INFO');
 
   return results;
+}
+
+/**
+ * Nettoie les doublons de coordonnées (garde le premier)
+ * @returns {Object} Rapport de nettoyage
+ */
+function cleanDuplicateCoordinates() {
+  const quartiers = getAllQuartiers(true);
+  const coordMap = new Map();
+  const duplicates = [];
+
+  quartiers.forEach(q => {
+    const key = `${q.latitude.toFixed(6)},${q.longitude.toFixed(6)}`;
+    
+    if (coordMap.has(key)) {
+      duplicates.push({
+        quartier: q,
+        duplicateOf: coordMap.get(key)
+      });
+    } else {
+      coordMap.set(key, q);
+    }
+  });
+
+  console.log(`🔍 Trouvé ${duplicates.length} doublons de coordonnées`);
+
+  return {
+    count: duplicates.length,
+    duplicates: duplicates.map(d => ({
+      id: d.quartier.id,
+      nom: d.quartier.nom,
+      duplicateOfId: d.duplicateOf.id,
+      duplicateOfNom: d.duplicateOf.nom,
+      coordinates: {
+        lat: d.quartier.latitude,
+        lng: d.quartier.longitude
+      }
+    }))
+  };
+}
+
+/**
+ * Réinitialise les coordonnées des quartiers avec doublons
+ * @param {Array<number>} quartierIds - IDs des quartiers à réinitialiser
+ * @returns {number} Nombre de quartiers réinitialisés
+ */
+function resetQuartierCoordinates(quartierIds) {
+  if (!Array.isArray(quartierIds)) {
+    throw new Error('quartierIds doit être un tableau');
+  }
+
+  let count = 0;
+
+  quartierIds.forEach(id => {
+    try {
+      updateQuartier(id, {
+        latitude: null,
+        longitude: null
+      });
+      count++;
+    } catch (e) {
+      console.log(`❌ Erreur réinitialisation quartier ${id}: ${e.message}`, 'ERROR');
+    }
+  });
+
+  // Invalider le cache
+  CacheService.getScriptCache().remove('all_quartiers');
+  CacheService.getScriptCache().remove('all_quartiers_coords');
+
+  console.log(`✅ ${count} quartiers réinitialisés`);
+
+  return count;
+}
+
+/**
+ * Wrapper pour compatibilité - utilise la version améliorée
+ */
+function geocodeQuartier(id) {
+  return geocodeQuartierImproved(id, true);
+}
+
+/**
+ * Wrapper pour compatibilité
+ */
+function geocodeQuartiersOfVille(idVille) {
+  const results = geocodeQuartiersOfVilleImproved(idVille, {
+    strictMode: true,
+    skipExisting: true
+  });
+  
+  // Format compatible avec l'ancien code
+  return results.details;
 }

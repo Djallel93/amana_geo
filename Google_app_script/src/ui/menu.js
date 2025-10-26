@@ -36,9 +36,6 @@ function onOpen() {
     console.log('✅ Menu AMANA créé');
 }
 
-// ========================================
-// FONCTIONS D'AFFICHAGE DES DIALOGUES
-// ========================================
 
 function showGeocodeQuartiersDialog() {
     showDialog('geocodeQuartiers', '📍 Géocoder les quartiers', 500, 550);
@@ -84,10 +81,6 @@ function showDocumentationDialog() {
     SpreadsheetApp.getUi().showModalDialog(html, '📖 Documentation');
 }
 
-// ========================================
-// FONCTIONS D'AIDE
-// ========================================
-
 function showDialog(filename, title, width, height) {
     const html = HtmlService.createTemplateFromFile(`views/dialogs/${filename}.html`);
     const output = html.evaluate()
@@ -95,8 +88,4 @@ function showDialog(filename, title, width, height) {
         .setHeight(height);
 
     SpreadsheetApp.getUi().showModalDialog(output, title);
-}
-
-function include(filename) {
-    return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
