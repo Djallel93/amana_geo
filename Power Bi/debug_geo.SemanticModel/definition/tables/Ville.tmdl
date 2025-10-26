@@ -1,0 +1,60 @@
+table Ville
+	lineageTag: b19f60a6-9f6c-4d5a-a064-184ba00014fa
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 05286f96-49c5-4794-8980-f6fe33e8af4d
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nom
+		dataType: string
+		lineageTag: 48ad012d-8210-425c-8d3d-195d241aa04f
+		summarizeBy: none
+		sourceColumn: nom
+
+		annotation SummarizationSetBy = Automatic
+
+	column code_postal
+		dataType: int64
+		formatString: 0
+		lineageTag: a66b6e4f-51b2-4069-9d20-7ad9357b4c2c
+		summarizeBy: none
+		sourceColumn: code_postal
+
+		annotation SummarizationSetBy = Automatic
+
+	column departement
+		dataType: string
+		lineageTag: 49e9dcd3-7ed0-4a0f-be72-8a628e685aac
+		summarizeBy: none
+		sourceColumn: departement
+
+		annotation SummarizationSetBy = Automatic
+
+	column pays
+		dataType: string
+		lineageTag: a3e6728c-3974-4075-ba11-af5c83d3637b
+		summarizeBy: none
+		sourceColumn: pays
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Ville = m
+		mode: import
+		source =
+				let
+				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1NZt62iJFGB4kZKf9MR85BwyqoglGmq-4LfTN21fTdLI"),
+				    Ville_Table = Source{[name="Ville",ItemKind="Table"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(Ville_Table, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"code_postal", Int64.Type}, {"departement", type text}, {"pays", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

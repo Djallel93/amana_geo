@@ -1,0 +1,8 @@
+relationship 42486aa6-fa7f-7324-2210-6a8c222d1750
+	fromColumn: Quartier.id_secteur
+	toColumn: Secteur.id
+
+relationship 7ad74ee2-ab59-96e5-a41b-9754d586001f
+	fromColumn: Secteur.id_ville
+	toColumn: Ville.id
+

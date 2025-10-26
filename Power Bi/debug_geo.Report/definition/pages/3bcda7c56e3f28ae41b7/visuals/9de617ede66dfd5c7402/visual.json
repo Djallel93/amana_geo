@@ -1,0 +1,119 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "name": "9de617ede66dfd5c7402",
+  "position": {
+    "x": 9.6,
+    "y": 0,
+    "z": 0,
+    "height": 720,
+    "width": 1270.4
+  },
+  "visual": {
+    "visualType": "map",
+    "query": {
+      "queryState": {
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quartier"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "Quartier.nom",
+              "nativeQueryRef": "nom"
+            }
+          ]
+        },
+        "X": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quartier"
+                    }
+                  },
+                  "Property": "longitude"
+                }
+              },
+              "queryRef": "Quartier.longitude",
+              "nativeQueryRef": "longitude"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quartier"
+                    }
+                  },
+                  "Property": "latitude"
+                }
+              },
+              "queryRef": "Quartier.latitude",
+              "nativeQueryRef": "latitude"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "c57d82e17c202ac97120",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Quartier"
+              }
+            },
+            "Property": "longitude"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "70045ff4bdc9e4bdee1b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Quartier"
+              }
+            },
+            "Property": "latitude"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "ac9e872125eca79ff2e8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Quartier"
+              }
+            },
+            "Property": "nom"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}
