@@ -1,0 +1,127 @@
+table quartiers
+	lineageTag: 8c90604b-ba96-4880-b054-4d2cd758b799
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3126a648-ddf3-42b8-ab0b-798e3b9339e8
+		summarizeBy: sum
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nom
+		dataType: string
+		lineageTag: a820af2f-e36d-4bfe-981f-4f4bb00fea8b
+		summarizeBy: none
+		sourceColumn: nom
+
+		annotation SummarizationSetBy = Automatic
+
+	column centre_latitude
+		dataType: string
+		lineageTag: 5f5cddfc-f3b4-4a6d-8267-42d740b50486
+		summarizeBy: none
+		sourceColumn: centre_latitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column centre_longitude
+		dataType: string
+		lineageTag: ae265f8d-09d7-4359-9569-bd30e7eb6891
+		summarizeBy: none
+		sourceColumn: centre_longitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column polygon_frontiere
+		dataType: string
+		lineageTag: 99f75978-cba0-4e55-8078-0f24327f2dea
+		summarizeBy: none
+		sourceColumn: polygon_frontiere
+
+		annotation SummarizationSetBy = Automatic
+
+	column id_secteur
+		dataType: string
+		lineageTag: ce29c5ff-7085-4033-9d3c-3e91386619b0
+		summarizeBy: none
+		sourceColumn: id_secteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Column1
+		dataType: string
+		lineageTag: ba72a16d-ddce-469c-b42e-22ca71a93e9b
+		summarizeBy: none
+		sourceColumn: Column1
+
+		annotation SummarizationSetBy = Automatic
+
+	column _1
+		dataType: string
+		lineageTag: 2a041ede-b4e7-4365-aac0-0de5b8e82ae6
+		summarizeBy: none
+		sourceColumn: _1
+
+		annotation SummarizationSetBy = Automatic
+
+	column _2
+		dataType: string
+		lineageTag: 6e8772f1-261e-4a04-b64a-065a4abfb8f9
+		summarizeBy: none
+		sourceColumn: _2
+
+		annotation SummarizationSetBy = Automatic
+
+	column _3
+		dataType: string
+		lineageTag: ccc9532b-56b7-44fe-af2b-1dfd5c802d06
+		summarizeBy: none
+		sourceColumn: _3
+
+		annotation SummarizationSetBy = Automatic
+
+	column _4
+		dataType: string
+		lineageTag: 6b2c1ffe-2735-4c82-9ec9-850891a6dabb
+		summarizeBy: none
+		sourceColumn: _4
+
+		annotation SummarizationSetBy = Automatic
+
+	column _5
+		dataType: double
+		lineageTag: f3332047-7be1-4c11-9673-db0f612e288b
+		summarizeBy: sum
+		sourceColumn: _5
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column _6
+		dataType: double
+		lineageTag: 40122321-b82d-488e-a3b6-08d5eb43d245
+		summarizeBy: sum
+		sourceColumn: _6
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition quartiers = m
+		mode: import
+		source =
+				let
+				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1NZt62iJFGB4kZKf9MR85BwyqoglGmq-4LfTN21fTdLI"),
+				    quartiers_Table = Source{[name="quartiers",ItemKind="Table"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(quartiers_Table, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"centre_latitude", type any}, {"centre_longitude", type any}, {"polygon_frontiere", type any}, {"id_secteur", type any}, {"", type any}, {"_1", type any}, {"_2", type any}, {"_3", type any}, {"_4", type any}, {"_5", type number}, {"_6", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

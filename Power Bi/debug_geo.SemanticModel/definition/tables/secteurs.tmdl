@@ -1,0 +1,72 @@
+table secteurs
+	lineageTag: 5ae2e5d1-66cb-4333-9bad-78746119fac2
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: a1735c33-9b00-43f8-bffd-a62d01a302a1
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nom
+		dataType: string
+		lineageTag: 4a4e3e5a-a452-4bf2-8998-86a678147552
+		summarizeBy: none
+		sourceColumn: nom
+
+		annotation SummarizationSetBy = Automatic
+
+	column centre_latitude
+		dataType: double
+		lineageTag: a7882519-4ee8-4650-a0f1-536d1f7ce8be
+		summarizeBy: sum
+		sourceColumn: centre_latitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column centre_longitude
+		dataType: double
+		lineageTag: 6c8fde06-5d5f-4fab-be2a-d54e78a52479
+		summarizeBy: sum
+		sourceColumn: centre_longitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column polygon_frontiere
+		dataType: string
+		lineageTag: 5370be3b-c3cd-4988-90ca-6211fb602fc3
+		summarizeBy: none
+		sourceColumn: polygon_frontiere
+
+		annotation SummarizationSetBy = Automatic
+
+	column id_ville
+		dataType: int64
+		formatString: 0
+		lineageTag: e80e735c-0843-4493-89ee-9ce702800744
+		summarizeBy: none
+		sourceColumn: id_ville
+
+		annotation SummarizationSetBy = Automatic
+
+	partition secteurs = m
+		mode: import
+		source =
+				let
+				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1NZt62iJFGB4kZKf9MR85BwyqoglGmq-4LfTN21fTdLI"),
+				    secteurs_Table = Source{[name="secteurs",ItemKind="Table"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(secteurs_Table, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"centre_latitude", type number}, {"centre_longitude", type number}, {"polygon_frontiere", type any}, {"id_ville", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -23,10 +23,17 @@ function onOpen() {
         .addItem('🔄 Calculer centroïdes secteurs', 'showCalculateCentroidsDialog')
         .addItem('🧹 Vider le cache', 'clearCacheUI');
 
+    const bounadriesMenu = ui.createMenu('🗺️ GEO API')
+        .addItem('🔄 Télécharger boundaries (OSM)', 'setupBoundariesUI')
+        .addItem('🔍 Tester géocodage avec polygones', 'testGeocodeWithPolygonsUI')
+        .addItem('🧹 Vider cache', 'clearCacheUI');
+
     ui.createMenu('📦 AMANA')
         .addSubMenu(geolocMenu)
         .addSeparator()
         .addSubMenu(createMenu)
+        .addSeparator()
+        .addSubMenu(bounadriesMenu)
         .addSeparator()
         .addSubMenu(toolsMenu)
         .addSeparator()

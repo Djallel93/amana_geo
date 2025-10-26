@@ -89,10 +89,6 @@ function confirm(title, message) {
     return response === ui.Button.YES;
 }
 
-// ========================================
-// FONCTIONS BACKEND POUR LES DIALOGUES
-// ========================================
-
 /**
  * Géocode les quartiers (backend pour dialogue)
  */

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "name": "23483358411703e07f74",
+  "position": {
+    "x": 9.6,
+    "y": 65.066666666666663,
+    "z": 0,
+    "height": 654.93333333333328,
+    "width": 1270.4
+  },
+  "visual": {
+    "visualType": "filledMap",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "villes"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "villes.nom",
+              "nativeQueryRef": "nom",
+              "active": true
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "villes"
+                    }
+                  },
+                  "Property": "id"
+                }
+              },
+              "queryRef": "villes.id",
+              "nativeQueryRef": "id"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "007968b2af351c99de9f",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "villes"
+              }
+            },
+            "Property": "nom"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "93bd808a1140f8269fe6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "villes"
+              }
+            },
+            "Property": "id"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

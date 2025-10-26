@@ -1,0 +1,81 @@
+table villes
+	lineageTag: 2dbd6b27-5b90-4329-9ef1-fd01d125d561
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: b9fd9fec-0d7a-4a9a-923b-18bd3b721919
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nom
+		dataType: string
+		lineageTag: 4648947c-e5e6-49d6-8bbc-df2c29f381b1
+		summarizeBy: none
+		sourceColumn: nom
+
+		annotation SummarizationSetBy = Automatic
+
+	column centre_latitude
+		dataType: double
+		lineageTag: d191b806-53f5-4288-b677-e47b04e6a1fb
+		summarizeBy: none
+		sourceColumn: centre_latitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column centre_longitude
+		dataType: double
+		lineageTag: 1b5d3ae1-ebe4-49e5-b766-43abb7717506
+		summarizeBy: none
+		sourceColumn: centre_longitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column polygon_frontiere
+		dataType: string
+		lineageTag: c7ed4a35-0be3-4108-8cca-ea5f11d9f7c2
+		summarizeBy: none
+		sourceColumn: polygon_frontiere
+
+		annotation SummarizationSetBy = Automatic
+
+	column code_postal
+		dataType: int64
+		formatString: 0
+		lineageTag: 4faa57b8-b281-4841-ad4d-e3b537f9983a
+		summarizeBy: none
+		sourceColumn: code_postal
+
+		annotation SummarizationSetBy = Automatic
+
+	column departement
+		dataType: string
+		lineageTag: 72c08e0f-4a8d-4af6-80ef-8df8113dd6e3
+		summarizeBy: none
+		sourceColumn: departement
+
+		annotation SummarizationSetBy = Automatic
+
+	partition villes = m
+		mode: import
+		source =
+				let
+				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1NZt62iJFGB4kZKf9MR85BwyqoglGmq-4LfTN21fTdLI"),
+				    villes_Table = Source{[name="villes",ItemKind="Table"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(villes_Table, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"centre_latitude", type number}, {"centre_longitude", type number}, {"polygon_frontiere", type text}, {"code_postal", Int64.Type}, {"departement", type text}}),
+				    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each [centre_latitude] <> null and [centre_latitude] <> "")
+				in
+				    #"Filtered Rows"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

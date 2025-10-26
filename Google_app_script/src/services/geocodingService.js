@@ -1,320 +1,483 @@
+// ============================================================================
+// FICHIER: geocodingService.js
+// Description: Géocodage d'adresses avec résolution point-in-polygon
+// ============================================================================
+
 /**
- * Service de géocodage d'adresses
+ * 🎯 Service de géocodage amélioré avec support polygonal
+ * 
+ * Stratégie de résolution (ordre de priorité):
+ * 1️⃣ Point dans UN seul polygon → retour immédiat
+ * 2️⃣ Point dans PLUSIEURS polygons → choisir le plus petit (aire)
+ * 3️⃣ Point HORS polygons + centroid proche (< seuil) → assigner
+ * 4️⃣ Fallback → centroid du secteur/ville parent
  */
 
 /**
- * Normalise une chaîne SANS supprimer les accents (pour géocodage)
- * @param {string} str - Chaîne à normaliser
- * @returns {string} Chaîne normalisée avec accents préservés
+ * 🔍 Fonction principale: trouve le quartier depuis une adresse
+ * 
+ * @param {string} address - Adresse à géocoder
+ * @returns {Object} Résultat avec quartier + méthode de résolution
  */
-function normalizeForGeocoding(str) {
-  if (!str || typeof str !== 'string') {
-    return '';
+function findQuartierFromAddress(address) {
+  Logger.log(`🔍 Géocodage adresse: ${address}`);
+
+  // Étape 1: Géocoder l'adresse → coordonnées
+  const geocodeResult = geocodeAddress(address);
+
+  if (!geocodeResult || !geocodeResult.isValid) {
+    throw new Error('❌ Impossible de géocoder cette adresse');
   }
-  return str.trim().replace(/\s+/g, ' ');
+
+  const { latitude, longitude } = geocodeResult.coordinates;
+  Logger.log(`📍 Coordonnées: ${latitude}, ${longitude}`);
+
+  // Étape 2: Résolution avec polygones
+  return resolveQuartierFromCoordinates(latitude, longitude);
 }
 
 /**
- * Crée une clé de cache UNIQUE qui préserve les accents
- * @param {string} address - Adresse complète
- * @returns {string} Clé de cache unique
+ * 🎯 Résolution quartier depuis coordonnées (avec polygones)
  */
-function createGeocodeKey(address) {
-  // Utiliser un hash pour éviter les collisions
-  const normalized = address.toLowerCase().trim().replace(/\s+/g, '_');
-  
-  // Simple hash pour assurer l'unicité
-  let hash = 0;
-  for (let i = 0; i < normalized.length; i++) {
-    const char = normalized.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+function resolveQuartierFromCoordinates(lat, lng) {
+  // Charger tous les quartiers avec polygones
+  const quartiers = loadQuartiersWithPolygons();
+
+  if (quartiers.length === 0) {
+    throw new Error('⚠️ Aucun quartier en base de données');
   }
-  
-  // Retourner une clé qui inclut le hash
-  return `geocode_${normalized.substring(0, 50)}_${Math.abs(hash)}`;
+
+  Logger.log(`📋 ${quartiers.length} quartiers chargés`);
+
+  // 🔍 ÉTAPE 1: Chercher dans les polygones
+  const matchingPolygons = [];
+
+  for (const q of quartiers) {
+    if (q.polygon && isPointInPolygon(lat, lng, q.polygon)) {
+      const area = polygonArea(q.polygon);
+      matchingPolygons.push({ quartier: q, area: area });
+      Logger.log(`  ✅ Point dans polygon: ${q.nom} (aire: ${area.toFixed(6)})`);
+    }
+  }
+
+  // ✅ CAS 1: UN SEUL polygon match
+  if (matchingPolygons.length === 1) {
+    Logger.log(`🎯 Résolution: point-in-polygon (unique)`);
+    return formatQuartierResult(matchingPolygons[0].quartier, 'point-in-polygon');
+  }
+
+  // ✅ CAS 2: PLUSIEURS polygons (choisir le plus petit)
+  if (matchingPolygons.length > 1) {
+    matchingPolygons.sort((a, b) => a.area - b.area);
+    const smallest = matchingPolygons[0];
+
+    Logger.log(`🎯 Résolution: point-in-multiple-polygons (choix plus petit: ${smallest.quartier.nom})`);
+    return formatQuartierResult(
+      smallest.quartier,
+      'point-in-polygon-smallest',
+      `Point dans ${matchingPolygons.length} polygones, plus petit sélectionné`
+    );
+  }
+
+  // 🔍 ÉTAPE 2: Aucun polygon match → chercher centroid proche
+  Logger.log(`⚠️ Point hors polygons, recherche centroid proche...`);
+
+  const threshold = CONFIG.GEO.NEAREST_THRESHOLD_M / 1000; // Convertir m → km
+  let nearestCentroid = null;
+  let minDistance = Infinity;
+
+  for (const q of quartiers) {
+    if (!q.centreLat || !q.centreLng) continue;
+
+    const distance = haversineDistance(lat, lng, q.centreLat, q.centreLng);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestCentroid = q;
+    }
+  }
+
+  // ✅ CAS 3: Centroid dans le seuil
+  if (nearestCentroid && minDistance <= threshold) {
+    Logger.log(`🎯 Résolution: nearest-centroid-within-threshold (${(minDistance * 1000).toFixed(0)}m < ${CONFIG.GEO.NEAREST_THRESHOLD_M}m)`);
+    return formatQuartierResult(
+      nearestCentroid,
+      'nearest-centroid-within-threshold',
+      `Distance: ${(minDistance * 1000).toFixed(0)}m`
+    );
+  }
+
+  // 🔍 ÉTAPE 3: FALLBACK → centroid du secteur parent
+  Logger.log(`⚠️ Distance trop grande (${(minDistance * 1000).toFixed(0)}m), fallback secteur...`);
+
+  const fallbackSecteur = findFallbackSecteur(lat, lng, nearestCentroid);
+
+  if (fallbackSecteur) {
+    Logger.log(`🎯 Résolution: fallback-to-secteur-centroid`);
+    return formatQuartierResult(
+      fallbackSecteur,
+      'fallback-to-secteur-centroid',
+      `Point trop éloigné, centroid du secteur "${fallbackSecteur.secteurNom}" utilisé`
+    );
+  }
+
+  // ❌ Aucune solution trouvée
+  throw new Error(`❌ Aucun quartier trouvé (point trop éloigné: ${(minDistance * 1000).toFixed(0)}m)`);
 }
 
-// ========================================
-// VALIDATION DE RÉSULTATS
-// ========================================
-
 /**
- * Vérifie si le résultat de géocodage est trop générique
- * @param {Object} result - Résultat Google Maps
- * @param {string} searchedAddress - Adresse recherchée
- * @returns {Object} {isValid: boolean, reason: string}
+ * 🔄 Fallback: chercher le centroid du secteur le plus proche
  */
-function validateGeocodingResult(result, searchedAddress) {
-  if (!result || !result.geometry || !result.geometry.location) {
-    return { isValid: false, reason: 'Résultat vide' };
-  }
+function findFallbackSecteur(lat, lng, nearestQuartier) {
+  if (!nearestQuartier) return null;
 
-  const locationType = result.geometry.location_type;
-  const addressComponents = result.address_components || [];
-  const formattedAddress = result.formatted_address || '';
+  // Récupérer le secteur du quartier le plus proche
+  const secteur = getSecteurById(nearestQuartier.idSecteur);
 
-  // Extraire le nom du quartier recherché
-  const searchedQuartier = searchedAddress.split(',')[0].trim().toLowerCase();
-
-  // Vérifier si le résultat contient le quartier recherché
-  const containsQuartier = formattedAddress.toLowerCase().includes(searchedQuartier) ||
-    addressComponents.some(comp => 
-      comp.long_name.toLowerCase().includes(searchedQuartier) ||
-      comp.short_name.toLowerCase().includes(searchedQuartier)
+  if (!secteur || !secteur.centreLat || !secteur.centreLng) {
+    // Fallback niveau 2: calculer centroid des quartiers du secteur
+    const quartiersInSecteur = loadQuartiersWithPolygons().filter(
+      q => q.idSecteur === nearestQuartier.idSecteur
     );
 
-  // REJET 1: Résultat trop imprécis (seulement ville/code postal)
-  if (locationType === 'APPROXIMATE') {
-    console.log(`⚠️ Résultat APPROXIMATE pour "${searchedAddress}" - peut-être trop générique`);
-    
-    if (!containsQuartier) {
-      return { 
-        isValid: false, 
-        reason: `Résultat trop générique (APPROXIMATE) - quartier "${searchedQuartier}" non trouvé dans "${formattedAddress}"` 
+    if (quartiersInSecteur.length > 0) {
+      const avgLat = quartiersInSecteur.reduce((sum, q) => sum + (q.centreLat || 0), 0) / quartiersInSecteur.length;
+      const avgLng = quartiersInSecteur.reduce((sum, q) => sum + (q.centreLng || 0), 0) / quartiersInSecteur.length;
+
+      return {
+        ...nearestQuartier,
+        centreLat: avgLat,
+        centreLng: avgLng,
+        secteurNom: secteur ? secteur.nom : 'Inconnu'
       };
     }
   }
 
-  // REJET 2: Vérifier si on a au moins une route/rue
-  const hasStreet = addressComponents.some(comp => 
-    comp.types.includes('route') || 
-    comp.types.includes('neighborhood') ||
-    comp.types.includes('sublocality')
-  );
-
-  if (!hasStreet && locationType === 'APPROXIMATE') {
-    return { 
-      isValid: false, 
-      reason: 'Pas de rue/quartier identifié - probablement centre-ville' 
-    };
-  }
-
-  // REJET 3: Vérifier que ce n'est pas juste "Ville, France"
-  const componentCount = addressComponents.length;
-  if (componentCount < 4) {
-    return { 
-      isValid: false, 
-      reason: 'Trop peu de composants d\'adresse - résultat générique' 
-    };
-  }
-
-  return { isValid: true, reason: 'OK' };
+  return {
+    ...nearestQuartier,
+    centreLat: secteur.centreLat,
+    centreLng: secteur.centreLng,
+    secteurNom: secteur.nom
+  };
 }
 
-// ========================================
-// GÉOCODAGE AMÉLIORÉ
-// ========================================
+/**
+ * 📦 Charge tous les quartiers avec leurs polygones
+ */
+function loadQuartiersWithPolygons() {
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) return [];
+
+  const quartiers = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const polygonStr = row[CONFIG.COLUMNS.QUARTIERS.POLYGON];
+
+    const quartier = {
+      id: row[CONFIG.COLUMNS.QUARTIERS.ID],
+      nom: row[CONFIG.COLUMNS.QUARTIERS.NOM],
+      centreLat: parseFloat(row[CONFIG.COLUMNS.QUARTIERS.CENTRE_LAT]),
+      centreLng: parseFloat(row[CONFIG.COLUMNS.QUARTIERS.CENTRE_LNG]),
+      idSecteur: row[CONFIG.COLUMNS.QUARTIERS.ID_SECTEUR],
+      polygon: parseGeoJSONPolygon(polygonStr)
+    };
+
+    // Vérifier validité coordonnées
+    if (isNaN(quartier.centreLat)) quartier.centreLat = null;
+    if (isNaN(quartier.centreLng)) quartier.centreLng = null;
+
+    quartiers.push(quartier);
+  }
+
+  return quartiers;
+}
 
 /**
- * Géocode une adresse avec validation renforcée
- * @param {string} address - Adresse à géocoder
- * @param {string} country - Pays (optionnel)
- * @param {boolean} strictMode - Mode strict (rejette résultats imprécis)
- * @returns {Object} Résultat du géocodage
+ * 📝 Formate le résultat final
  */
-function geocodeAddressImproved(address, country = null, strictMode = true) {
-  if (!address || isEmpty(address)) {
-    throw new Error(CONFIG.ERRORS.MISSING_PARAMETERS);
-  }
+function formatQuartierResult(quartier, resolutionMethod, details = null) {
+  return {
+    success: true,
+    quartierId: quartier.id,
+    quartierNom: quartier.nom,
+    centreLat: quartier.centreLat,
+    centreLng: quartier.centreLng,
+    idSecteur: quartier.idSecteur,
+    resolutionMethod: resolutionMethod,
+    resolutionDetails: details,
+    timestamp: new Date().toISOString()
+  };
+}
 
-  const cleanedAddress = normalizeForGeocoding(address);
-  const countryToUse = country || CONFIG.GEO.DEFAULT_COUNTRY;
-  const fullAddress = `${cleanedAddress}, ${countryToUse}`;
-
-  // NOUVEAU: Clé de cache unique avec hash
-  const cacheKey = createGeocodeKey(fullAddress);
-  const cached = getCache(cacheKey);
+/**
+ * 🌍 Géocode une adresse (wrapper Google Maps)
+ */
+function geocodeAddress(address) {
+  // Vérifier cache
+  const cacheKey = `geocode_${address.toLowerCase().replace(/\s+/g, '_')}`;
+  const cached = CacheService.getScriptCache().get(cacheKey);
 
   if (cached) {
-    console.log(`✅ Cache HIT: ${cacheKey}`);
-    return cached;
+    Logger.log(`💾 Cache HIT: ${cacheKey}`);
+    return JSON.parse(cached);
   }
 
-  console.log(`❌ Cache MISS: ${cacheKey}`);
-
   try {
-    console.log(`🔍 Géocodage: ${fullAddress}`);
-
     const geocoder = Maps.newGeocoder();
     geocoder.setRegion('fr');
     geocoder.setLanguage('fr');
-    const response = geocoder.geocode(fullAddress);
+
+    const response = geocoder.geocode(address);
 
     if (!response.results || response.results.length === 0) {
-      throw new Error(CONFIG.ERRORS.INVALID_ADDRESS);
+      return { isValid: false, error: 'Adresse introuvable' };
     }
 
     const result = response.results[0];
-    
-    // NOUVEAU: Validation du résultat
-    const validation = validateGeocodingResult(result, cleanedAddress);
-    
-    if (strictMode && !validation.isValid) {
-      console.log(`❌ Résultat rejeté: ${validation.reason}`);
-      
-      return {
-        isValid: false,
-        error: 'GEOCODING_TOO_GENERIC',
-        message: validation.reason,
-        address: fullAddress,
-        suggestion: 'Essayez avec une adresse plus précise (rue, numéro) ou géocodez manuellement'
-      };
-    }
-
     const location = result.geometry.location;
-    const components = extractAddressComponents(result.address_components);
 
-    const geocodingResult = {
+    const geocodeResult = {
       isValid: true,
       coordinates: {
         latitude: location.lat,
         longitude: location.lng
       },
       formattedAddress: result.formatted_address,
-      components: components,
-      locationType: result.geometry.location_type,
-      placeId: result.place_id,
-      validationWarning: validation.isValid ? null : validation.reason,
-      timestamp: new Date().toISOString()
+      locationType: result.geometry.location_type
     };
 
-    // Mettre en cache
-    setCache(cacheKey, geocodingResult);
-    console.log(`💾 Cache SET: ${cacheKey} (3600s)`);
-    console.log(`✅ Géocodage réussi: ${location.lat}, ${location.lng}`);
+    // Mettre en cache (1 heure)
+    CacheService.getScriptCache().put(cacheKey, JSON.stringify(geocodeResult), 3600);
 
-    return geocodingResult;
+    return geocodeResult;
 
   } catch (e) {
-    console.log(`❌ Erreur géocodage: ${e.message}`);
+    Logger.log(`❌ Erreur géocodage: ${e.message}`);
+    return { isValid: false, error: e.message };
+  }
+}
 
+/**
+ * 🔄 Géocode un quartier et met à jour ses coordonnées
+ */
+function geocodeQuartier(quartierId) {
+  const quartier = getQuartierData(quartierId);
+
+  if (!quartier) {
+    throw new Error(`❌ Quartier ${quartierId} introuvable`);
+  }
+
+  // Construire adresse de recherche
+  const secteur = getSecteurById(quartier.idSecteur);
+  const ville = secteur ? getVilleById(secteur.idVille) : null;
+
+  if (!ville) {
+    throw new Error(`❌ Ville parente introuvable pour quartier ${quartierId}`);
+  }
+
+  const searchAddress = `${quartier.nom}, ${ville.nom}, ${ville.codePostal}, France`;
+  Logger.log(`🔍 Géocodage: ${searchAddress}`);
+
+  const result = geocodeAddress(searchAddress);
+
+  if (!result.isValid) {
     return {
-      isValid: false,
-      error: CONFIG.ERRORS.GEOCODING_FAILED,
-      message: e.message,
-      address: fullAddress
+      success: false,
+      quartierId: quartierId,
+      quartierNom: quartier.nom,
+      error: result.error
     };
   }
+
+  // Mettre à jour les coordonnées dans le sheet
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][CONFIG.COLUMNS.QUARTIERS.ID] == quartierId) {
+      sheet.getRange(i + 1, CONFIG.COLUMNS.QUARTIERS.CENTRE_LAT + 1)
+        .setValue(result.coordinates.latitude);
+      sheet.getRange(i + 1, CONFIG.COLUMNS.QUARTIERS.CENTRE_LNG + 1)
+        .setValue(result.coordinates.longitude);
+
+      Logger.log(`✅ Coordonnées mises à jour: ${result.coordinates.latitude}, ${result.coordinates.longitude}`);
+      break;
+    }
+  }
+
+  return {
+    success: true,
+    quartierId: quartierId,
+    quartierNom: quartier.nom,
+    coordinates: result.coordinates,
+    formattedAddress: result.formattedAddress
+  };
 }
 
 /**
- * Extrait et structure les composants d'une adresse
- * @param {Array} addressComponents - Composants bruts de Google Maps
- * @returns {Object} Composants structurés
+ * 📖 Récupère les données d'un quartier
  */
-function extractAddressComponents(addressComponents) {
-  const components = {
-    streetNumber: null,
-    street: null,
-    neighborhood: null,
-    city: null,
-    postalCode: null,
-    department: null,
-    region: null,
-    country: null
+function getQuartierData(quartierId) {
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][CONFIG.COLUMNS.QUARTIERS.ID] == quartierId) {
+      return {
+        id: data[i][CONFIG.COLUMNS.QUARTIERS.ID],
+        nom: data[i][CONFIG.COLUMNS.QUARTIERS.NOM],
+        centreLat: data[i][CONFIG.COLUMNS.QUARTIERS.CENTRE_LAT],
+        centreLng: data[i][CONFIG.COLUMNS.QUARTIERS.CENTRE_LNG],
+        idSecteur: data[i][CONFIG.COLUMNS.QUARTIERS.ID_SECTEUR]
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 🔄 Géocode tous les quartiers d'une ville
+ */
+function geocodeQuartiersOfVille(villeId, options = {}) {
+  const skipExisting = options.skipExisting !== false;
+  const batchSize = options.batchSize || 10;
+  const pauseMs = options.pauseMs || 1000;
+
+  // Charger quartiers de la ville
+  const secteurs = getSecteursByVille(villeId);
+  const secteurIds = secteurs.map(s => s.id);
+
+  const allQuartiers = loadQuartiersWithPolygons().filter(
+    q => secteurIds.includes(q.idSecteur)
+  );
+
+  // Filtrer si skipExisting
+  const toGeocode = skipExisting
+    ? allQuartiers.filter(q => !q.centreLat || !q.centreLng)
+    : allQuartiers;
+
+  Logger.log(`🔄 Géocodage: ${toGeocode.length}/${allQuartiers.length} quartiers`);
+
+  const results = {
+    total: toGeocode.length,
+    success: 0,
+    failed: 0,
+    details: []
   };
 
-  if (!Array.isArray(addressComponents)) {
-    return components;
-  }
+  toGeocode.forEach((q, index) => {
+    // Pause entre batches
+    if (index > 0 && index % batchSize === 0) {
+      Logger.log(`⏸️ Pause après ${index} géocodages...`);
+      Utilities.sleep(2000);
+    }
 
-  addressComponents.forEach(component => {
-    const types = component.types;
-
-    if (types.includes('street_number')) {
-      components.streetNumber = component.long_name;
-    }
-    if (types.includes('route')) {
-      components.street = component.long_name;
-    }
-    if (types.includes('neighborhood') || types.includes('sublocality')) {
-      components.neighborhood = component.long_name;
-    }
-    if (types.includes('locality')) {
-      components.city = component.long_name;
-    }
-    if (types.includes('postal_code')) {
-      components.postalCode = component.long_name;
-    }
-    if (types.includes('administrative_area_level_2')) {
-      components.department = component.long_name;
-    }
-    if (types.includes('administrative_area_level_1')) {
-      components.region = component.long_name;
-    }
-    if (types.includes('country')) {
-      components.country = component.long_name;
-    }
-  });
-
-  return components;
-}
-
-/**
- * Géocode multiple adresses avec détection des doublons
- * @param {Array<string>} addresses - Tableau d'adresses
- * @param {boolean} strictMode - Mode strict
- * @returns {Array<Object>} Résultats du géocodage avec warnings
- */
-function geocodeAddressesBatchImproved(addresses, strictMode = true) {
-  if (!Array.isArray(addresses) || addresses.length === 0) {
-    throw new Error('Tableau d\'adresses vide ou invalide');
-  }
-
-  console.log(`🔄 Géocodage batch amélioré: ${addresses.length} adresses`);
-
-  const results = [];
-  const coordinateMap = new Map(); // Détection des doublons
-
-  addresses.forEach((address, index) => {
     try {
-      const result = geocodeAddressImproved(address, null, strictMode);
-      
-      // Vérifier les doublons de coordonnées
-      if (result.isValid) {
-        const coordKey = `${result.coordinates.latitude.toFixed(4)},${result.coordinates.longitude.toFixed(4)}`;
-        
-        if (coordinateMap.has(coordKey)) {
-          result.warning = `⚠️ Coordonnées identiques à "${coordinateMap.get(coordKey)}" - peut-être un doublon`;
-          console.log(`⚠️ Doublon détecté: "${address}" et "${coordinateMap.get(coordKey)}"`);
-        } else {
-          coordinateMap.set(coordKey, address);
-        }
+      const result = geocodeQuartier(q.id);
+
+      if (result.success) {
+        results.success++;
+      } else {
+        results.failed++;
       }
 
-      results.push({
-        index: index,
-        address: address,
-        ...result
-      });
+      results.details.push(result);
 
-      // Pause tous les 5 géocodages
-      if ((index + 1) % 5 === 0 && index < addresses.length - 1) {
-        Utilities.sleep(1000);
+      // Pause légère
+      if (index < toGeocode.length - 1) {
+        Utilities.sleep(pauseMs);
       }
 
     } catch (e) {
-      results.push({
-        index: index,
-        address: address,
-        isValid: false,
+      results.failed++;
+      results.details.push({
+        success: false,
+        quartierId: q.id,
+        quartierNom: q.nom,
         error: e.message
       });
     }
   });
 
-  const successCount = results.filter(r => r.isValid).length;
-  const warningCount = results.filter(r => r.warning).length;
-  
-  console.log(`✅ Géocodage terminé: ${successCount}/${addresses.length} réussis, ${warningCount} warnings`);
-
+  Logger.log(`✅ Terminé: ${results.success} succès, ${results.failed} échecs`);
   return results;
 }
 
 /**
- * Wrapper pour compatibilité - utilise la nouvelle version par défaut
+ * 📖 Récupère secteurs d'une ville
  */
-function geocodeAddress(address, country = null) {
-  return geocodeAddressImproved(address, country, true);
+function getSecteursByVille(villeId) {
+  const sheet = getSheet(CONFIG.SHEETS.SECTEURS);
+  const data = sheet.getDataRange().getValues();
+
+  const secteurs = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][CONFIG.COLUMNS.SECTEURS.ID_VILLE] == villeId) {
+      secteurs.push({
+        id: data[i][CONFIG.COLUMNS.SECTEURS.ID],
+        nom: data[i][CONFIG.COLUMNS.SECTEURS.NOM],
+        centreLat: data[i][CONFIG.COLUMNS.SECTEURS.CENTRE_LAT],
+        centreLng: data[i][CONFIG.COLUMNS.SECTEURS.CENTRE_LNG],
+        idVille: data[i][CONFIG.COLUMNS.SECTEURS.ID_VILLE]
+      });
+    }
+  }
+
+  return secteurs;
+}
+
+/**
+ * 🎯 UI: Tester géocodage avec polygones
+ */
+function testGeocodeWithPolygonsUI() {
+  const ui = SpreadsheetApp.getUi();
+
+  const response = ui.prompt(
+    '🔍 Tester géocodage',
+    'Entrez une adresse à géocoder:',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() === ui.Button.OK) {
+    const address = response.getResponseText();
+
+    try {
+      const result = findQuartierFromAddress(address);
+
+      ui.alert(
+        '✅ Quartier trouvé',
+        `Quartier: ${result.quartierNom}\n` +
+        `ID: ${result.quartierId}\n` +
+        `Méthode: ${result.resolutionMethod}\n` +
+        `${result.resolutionDetails ? 'Détails: ' + result.resolutionDetails : ''}`,
+        ui.ButtonSet.OK
+      );
+
+    } catch (e) {
+      ui.alert('❌ Erreur', e.message, ui.ButtonSet.OK);
+    }
+  }
+}
+
+/**
+ * 🧹 Vider cache UI
+ */
+function clearCacheUI() {
+  const ui = SpreadsheetApp.getUi();
+
+  const response = ui.alert(
+    '🧹 Vider cache',
+    'Vider tout le cache de géocodage?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response === ui.Button.YES) {
+    CacheService.getScriptCache().removeAll([]);
+    ui.alert('✅ Cache vidé', 'Le cache a été nettoyé avec succès.', ui.ButtonSet.OK);
+  }
 }

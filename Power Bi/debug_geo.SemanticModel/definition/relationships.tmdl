@@ -1,8 +1,8 @@
-relationship 42486aa6-fa7f-7324-2210-6a8c222d1750
-	fromColumn: Quartier.id_secteur
-	toColumn: Secteur.id
+relationship ac4181e1-1256-4da4-5c17-8fb4f66bd469
+	fromColumn: quartiers.id_secteur
+	toColumn: secteurs.id
 
-relationship 7ad74ee2-ab59-96e5-a41b-9754d586001f
-	fromColumn: Secteur.id_ville
-	toColumn: Ville.id
+relationship 6c5ec35b-c4b3-2aae-edfa-7ed34c363387
+	fromColumn: secteurs.id_ville
+	toColumn: villes.id
 

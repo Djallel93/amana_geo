@@ -76,8 +76,9 @@ function getAllQuartiers(hasCoordinates = true) {
       const q = {
         id: row[CONFIG.COLUMNS.QUARTIER.ID],
         nom: row[CONFIG.COLUMNS.QUARTIER.NOM],
-        latitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LATITUDE]),
-        longitude: parseFloat(row[CONFIG.COLUMNS.QUARTIER.LONGITUDE]),
+        centreLatitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LAT] || null,
+        centreLongitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LNG] || null,
+        polygonFrontiere: row[CONFIG.COLUMNS.VILLE.POLYGON] || null,
         idSecteur: row[CONFIG.COLUMNS.QUARTIER.ID_SECTEUR]
       };
 
@@ -497,7 +498,7 @@ function geocodeQuartierImproved(id, strictMode = true) {
 
   if (!result.isValid) {
     console.log(`❌ Échec géocodage: ${result.message}`, 'ERROR');
-    
+
     return {
       success: false,
       quartierId: id,
@@ -510,14 +511,14 @@ function geocodeQuartierImproved(id, strictMode = true) {
 
   // Vérifier si ces coordonnées existent déjà
   const existingQuartiers = getAllQuartiers(true);
-  const duplicate = existingQuartiers.find(q => 
+  const duplicate = existingQuartiers.find(q =>
     q.id !== id &&
     Math.abs(q.latitude - result.coordinates.latitude) < 0.0001 &&
     Math.abs(q.longitude - result.coordinates.longitude) < 0.0001
   );
 
-  const warningMessage = duplicate 
-    ? `⚠️ ATTENTION: Coordonnées identiques au quartier "${duplicate.nom}" (ID: ${duplicate.id})` 
+  const warningMessage = duplicate
+    ? `⚠️ ATTENTION: Coordonnées identiques au quartier "${duplicate.nom}" (ID: ${duplicate.id})`
     : null;
 
   if (warningMessage) {
@@ -569,7 +570,7 @@ function geocodeQuartiersOfVilleImproved(idVille, options = {}) {
   const quartiers = getQuartiersByVille(idVille, false);
 
   // Filtrer si on skip les existants
-  const quartiersToGeocode = skipExisting 
+  const quartiersToGeocode = skipExisting
     ? quartiers.filter(q => !q.latitude || !q.longitude || isNaN(q.latitude) || isNaN(q.longitude))
     : quartiers;
 
@@ -643,7 +644,7 @@ function cleanDuplicateCoordinates() {
 
   quartiers.forEach(q => {
     const key = `${q.latitude.toFixed(6)},${q.longitude.toFixed(6)}`;
-    
+
     if (coordMap.has(key)) {
       duplicates.push({
         quartier: q,
@@ -719,7 +720,7 @@ function geocodeQuartiersOfVille(idVille) {
     strictMode: true,
     skipExisting: true
   });
-  
+
   // Format compatible avec l'ancien code
   return results.details;
 }

@@ -1,109 +1,76 @@
+// ============================================================================
+// FICHIER: Code.js (Principal)
+// Description: Configuration centrale et fonctions core
+// ============================================================================
+
 /**
- * Configuration centrale du projet GEO
- * Contient toutes les constantes et paramètres de configuration
+ * 🌍 Configuration centrale du projet GEO avec support polygones
+ * Structure des sheets: villes | secteurs | quartiers avec polygon_frontiere
  */
-
-// === IDs des feuilles Google Sheets ===
 const CONFIG = {
-  // ID du Google Sheet (à modifier après création)
-  SHEET_ID: PropertiesService.getScriptProperties().getProperty('SHEET_ID') || 'VOTRE_SHEET_ID',
-
-  // Noms des feuilles
+  // Noms exacts des feuilles (comme spécifié)
   SHEETS: {
-    QUARTIER: 'Quartier',
-    SECTEUR: 'Secteur',
-    VILLE: 'Ville'
+    VILLES: 'villes',
+    SECTEURS: 'secteurs',
+    QUARTIERS: 'quartiers'
   },
 
-  // Colonnes des feuilles
+  // 📋 Structure EXACTE des colonnes (index 0-based)
   COLUMNS: {
-    QUARTIER: {
+    VILLES: {
       ID: 0,
       NOM: 1,
-      LATITUDE: 2,
-      LONGITUDE: 3,
-      ID_SECTEUR: 4
+      CENTRE_LAT: 2,
+      CENTRE_LNG: 3,
+      POLYGON: 4,
+      CODE_POSTAL: 5,
+      DEPARTEMENT: 6
     },
-    SECTEUR: {
+    SECTEURS: {
       ID: 0,
       NOM: 1,
-      LATITUDE: 2,
-      LONGITUDE: 3,
-      ID_VILLE: 4
+      CENTRE_LAT: 2,
+      CENTRE_LNG: 3,
+      POLYGON: 4,
+      ID_VILLE: 5
     },
-    VILLE: {
+    QUARTIERS: {
       ID: 0,
       NOM: 1,
-      CODE_POSTAL: 2,
-      DEPARTEMENT: 3,
-      PAYS: 4
+      CENTRE_LAT: 2,
+      CENTRE_LNG: 3,
+      POLYGON: 4,
+      ID_SECTEUR: 5
     }
   },
 
-  // Paramètres de géolocalisation
+  // 🔧 Paramètres géospatiaux (configurables via Script Properties)
   GEO: {
-    MAX_DISTANCE_KM: parseFloat(PropertiesService.getScriptProperties().getProperty('MAX_DISTANCE_KM')) || 50,
+    NEAREST_THRESHOLD_M: parseFloat(
+      PropertiesService.getScriptProperties().getProperty('NEAREST_CENTROID_THRESHOLD_METERS')
+    ) || 200,
+    RAYON_TERRE_KM: 6371,
     DEFAULT_COUNTRY: 'France',
-    CACHE_DURATION: parseInt(PropertiesService.getScriptProperties().getProperty('CACHE_DURATION')) || 3600, // 1 heure
-    RAYON_TERRE_KM: 6371 // Rayon de la Terre pour calculs Haversine
+    USER_AGENT: 'GoogleAppsScript-GeoAPI/2.1 (bigdjallel@gmail.com)' // Make sure this follows format: "AppName/Version (contact@email.com)"
   },
 
-  // Quotas Google Maps
-  QUOTAS: {
-    GEOCODING_DAILY_LIMIT: 1000,
-    BATCH_SIZE: 50 // Nombre max d'adresses à géocoder en une fois
-  },
-
-  // Messages d'erreur
+  // ⚠️ Messages d'erreur en français avec emojis
   ERRORS: {
-    INVALID_ADDRESS: 'Adresse invalide ou introuvable',
-    GEOCODING_FAILED: 'Échec du géocodage',
-    NO_QUARTIER_FOUND: 'Aucun quartier trouvé dans le rayon spécifié',
-    INVALID_COORDINATES: 'Coordonnées GPS invalides',
-    MISSING_PARAMETERS: 'Paramètres manquants',
-    UNAUTHORIZED: 'Clé API invalide ou manquante',
-    QUOTA_EXCEEDED: 'Quota de géocodage dépassé',
-    VILLE_NOT_FOUND: 'Ville introuvable',
-    QUARTIER_NOT_FOUND: 'Quartier introuvable'
+    INVALID_GEOJSON: '❌ GeoJSON invalide',
+    NO_POLYGON: '⚠️ Aucun polygone disponible',
+    GEOCODING_FAILED: '❌ Échec du géocodage',
+    NO_MATCH: '🔍 Aucun quartier trouvé'
   }
 };
 
 /**
- * Récupère l'objet Spreadsheet
- * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
- */
-function getSpreadsheet() {
-  return SpreadsheetApp.openById(CONFIG.SHEET_ID);
-}
-
-/**
- * Récupère une feuille par son nom
- * @param {string} sheetName - Nom de la feuille
- * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ * 🔧 Récupère une feuille par nom
  */
 function getSheet(sheetName) {
-  const sheet = getSpreadsheet().getSheetByName(sheetName);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
-    throw new Error(`Feuille "${sheetName}" introuvable`);
+    throw new Error(`❌ Feuille "${sheetName}" introuvable`);
   }
   return sheet;
-}
-
-/**
- * Configure les propriétés du script (à exécuter une fois)
- */
-function setupScriptProperties() {
-  const props = PropertiesService.getScriptProperties();
-
-  // Demander à l'utilisateur de remplir ces valeurs
-  props.setProperties({
-    'SHEET_ID': 'VOTRE_SHEET_ID_ICI',
-    'MAX_DISTANCE_KM': '50',
-    'CACHE_DURATION': '3600',
-    'API_KEY': '', // Laisser vide si pas d'auth
-    'ENABLE_AUTH': 'false'
-  });
-
-  console.log('✅ Propriétés configurées avec succès');
-  console.log('⚠️ N\'oubliez pas de modifier SHEET_ID !');
 }

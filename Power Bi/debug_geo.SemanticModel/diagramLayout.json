@@ -13,10 +13,10 @@
             "x": 0,
             "y": 0
           },
-          "nodeIndex": "Quartier",
-          "nodeLineageTag": "7ed0fe7a-8cdb-45a2-9589-669708679bf3",
+          "nodeIndex": "quartiers",
+          "nodeLineageTag": "8c90604b-ba96-4880-b054-4d2cd758b799",
           "size": {
-            "height": 250,
+            "height": 300,
             "width": 234
           },
           "zIndex": 0
@@ -24,12 +24,12 @@
         {
           "location": {
             "x": 284,
-            "y": 0
+            "y": 38
           },
-          "nodeIndex": "Secteur",
-          "nodeLineageTag": "1f2fdd4a-3804-41b4-841e-06da125838e0",
+          "nodeIndex": "secteurs",
+          "nodeLineageTag": "5ae2e5d1-66cb-4333-9bad-78746119fac2",
           "size": {
-            "height": 264,
+            "height": 224,
             "width": 234
           },
           "zIndex": 0
@@ -37,12 +37,12 @@
         {
           "location": {
             "x": 568,
-            "y": 0
+            "y": 26
           },
-          "nodeIndex": "Ville",
-          "nodeLineageTag": "b19f60a6-9f6c-4d5a-a064-184ba00014fa",
+          "nodeIndex": "villes",
+          "nodeLineageTag": "2dbd6b27-5b90-4329-9ef1-fd01d125d561",
           "size": {
-            "height": 200,
+            "height": 248,
             "width": 234
           },
           "zIndex": 0

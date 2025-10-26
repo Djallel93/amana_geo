@@ -13,8 +13,9 @@ function getAllSecteurs() {
     const secteurs = data.slice(1).map(row => ({
         id: row[CONFIG.COLUMNS.SECTEUR.ID],
         nom: row[CONFIG.COLUMNS.SECTEUR.NOM],
-        latitude: parseFloat(row[CONFIG.COLUMNS.SECTEUR.LATITUDE]) || null,
-        longitude: parseFloat(row[CONFIG.COLUMNS.SECTEUR.LONGITUDE]) || null,
+        centreLatitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LAT] || null,
+        centreLongitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LNG] || null,
+        polygonFrontiere: row[CONFIG.COLUMNS.VILLE.POLYGON] || null,
         idVille: row[CONFIG.COLUMNS.SECTEUR.ID_VILLE]
     })).filter(s => s.id);
 

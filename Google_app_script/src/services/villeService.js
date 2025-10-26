@@ -20,6 +20,9 @@ function getAllVilles() {
   const villes = data.slice(1).map(row => ({
     id: row[CONFIG.COLUMNS.VILLE.ID],
     nom: row[CONFIG.COLUMNS.VILLE.NOM],
+    centreLatitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LAT] || null,
+    centreLongitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LNG] || null,
+    polygonFrontiere: row[CONFIG.COLUMNS.VILLE.POLYGON] || null,
     codePostal: row[CONFIG.COLUMNS.VILLE.CODE_POSTAL],
     departement: row[CONFIG.COLUMNS.VILLE.DEPARTEMENT],
     pays: row[CONFIG.COLUMNS.VILLE.PAYS]
@@ -51,9 +54,9 @@ function getVillesByCodePostal(codePostal) {
   }
 
   const villes = getAllVilles();
-  
+
   const normalizedSearch = String(codePostal).trim();
-  
+
   return villes.filter(v => {
     const villeCodePostal = String(v.codePostal).trim();
     return villeCodePostal === normalizedSearch;

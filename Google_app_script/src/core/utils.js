@@ -3,9 +3,6 @@
  * Améliorations: validation renforcée, gestion d'erreurs, performance
  */
 
-// ========================================
-// CONVERSIONS MATHÉMATIQUES
-// ========================================
 
 /**
  * Convertit des degrés en radians
@@ -30,10 +27,6 @@ function toDegrees(radians) {
   }
   return radians * 180 / Math.PI;
 }
-
-// ========================================
-// VALIDATION
-// ========================================
 
 /**
  * Valide des coordonnées GPS (optimisé)
@@ -81,10 +74,6 @@ function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email.trim());
 }
-
-// ========================================
-// CACHE MANAGEMENT
-// ========================================
 
 /**
  * Gestionnaire de cache amélioré
@@ -206,9 +195,6 @@ function getCacheKeyForCoordinates(lat, lng) {
   return cacheManager.generateKey('quartier', lat.toFixed(4), lng.toFixed(4));
 }
 
-// ========================================
-// RÉPONSES API
-// ========================================
 
 /**
  * Formate une réponse API en JSON (optimisé)
@@ -259,10 +245,6 @@ function createSuccessResponse(data, message = null) {
 
   return createJsonResponse(response, 200);
 }
-
-// ========================================
-// FORMATAGE ET NETTOYAGE
-// ========================================
 
 /**
  * Nettoie et normalise une adresse (optimisé)
@@ -366,9 +348,6 @@ function formatDate(date) {
     return 'Date invalide';
   }
 }
-// ========================================
-// CONVERSIONS DE DONNÉES
-// ========================================
 
 /**
  * Convertit un tableau de données en objets (optimisé)
@@ -416,10 +395,6 @@ function objectToQueryString(params) {
     .join('&');
 }
 
-// ========================================
-// UTILITAIRES DIVERS
-// ========================================
-
 /**
  * Génère un ID unique (amélioré)
  * @param {string} prefix - Préfixe optionnel
@@ -428,20 +403,6 @@ function objectToQueryString(params) {
 function generateUniqueId(prefix = '') {
   const uuid = Utilities.getUuid().replace(/-/g, '');
   return prefix ? `${prefix}_${uuid}` : uuid;
-}
-
-/**
- * Attend un certain délai (pour rate limiting)
- * @param {number} ms - Millisecondes à attendre
- */
-function sleep(ms) {
-  if (typeof ms !== 'number' || ms < 0) {
-    return;
-  }
-
-  // Limiter à 5 minutes max pour éviter timeouts
-  const delay = Math.min(ms, 300000);
-  Utilities.sleep(delay);
 }
 
 /**
@@ -463,7 +424,7 @@ function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
       if (i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i);
         logger.warn(`Tentative ${i + 1}/${maxRetries} échouée, retry dans ${delay}ms`);
-        sleep(delay);
+        Utilities.sleep(delay);
       }
     }
   }
@@ -593,10 +554,6 @@ function measureTime(fn, label = 'Opération') {
   }
 }
 
-// ========================================
-// VALIDATION DE DONNÉES SHEET
-// ========================================
-
 /**
  * Valide qu'une feuille existe
  * @param {string} sheetName - Nom de la feuille
@@ -674,5 +631,162 @@ function clearCacheUI() {
         ui.ButtonSet.OK
       );
     }
+  }
+}
+
+/**
+ * 📏 Calcule la distance Haversine entre deux points
+ */
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return CONFIG.GEO.RAYON_TERRE_KM * c;
+}
+
+/**
+ * 🎯 Test point-in-polygon (ray-casting algorithm)
+ * Source: https://en.wikipedia.org/wiki/Point_in_polygon
+ * 
+ * @param {number} lat - Latitude du point à tester
+ * @param {number} lng - Longitude du point à tester
+ * @param {Array} polygon - Array de [lat, lng] (format: [[lat1,lng1], [lat2,lng2], ...])
+ * @returns {boolean} True si le point est dans le polygone
+ */
+function isPointInPolygon(lat, lng, polygon) {
+  if (!polygon || polygon.length < 3) return false;
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [latI, lngI] = polygon[i];
+    const [latJ, lngJ] = polygon[j];
+
+    // Ray-casting: compte les intersections avec un rayon horizontal
+    const intersect = ((lngI > lng) !== (lngJ > lng)) &&
+      (lat < (latJ - latI) * (lng - lngI) / (lngJ - lngI) + latI);
+
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
+/**
+ * 📐 Calcule l'aire d'un polygone (formule Shoelace)
+ * Source: https://en.wikipedia.org/wiki/Shoelace_formula
+ */
+function polygonArea(polygon) {
+  if (!polygon || polygon.length < 3) return 0;
+
+  let area = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const j = (i + 1) % polygon.length;
+    area += polygon[i][0] * polygon[j][1];
+    area -= polygon[j][0] * polygon[i][1];
+  }
+
+  return Math.abs(area) / 2;
+}
+
+/**
+ * 🎯 Calcule le centroïde d'un polygone
+ * Source: https://en.wikipedia.org/wiki/Centroid#Of_a_polygon
+ */
+function polygonCentroid(polygon) {
+  if (!polygon || polygon.length < 3) {
+    return { latitude: null, longitude: null };
+  }
+
+  let centroidLat = 0;
+  let centroidLng = 0;
+  let signedArea = 0;
+
+  for (let i = 0; i < polygon.length; i++) {
+    const j = (i + 1) % polygon.length;
+    const [latI, lngI] = polygon[i];
+    const [latJ, lngJ] = polygon[j];
+
+    const cross = latI * lngJ - latJ * lngI;
+    signedArea += cross;
+    centroidLat += (latI + latJ) * cross;
+    centroidLng += (lngI + lngJ) * cross;
+  }
+
+  signedArea *= 0.5;
+
+  if (Math.abs(signedArea) < 1e-10) {
+    // Fallback: moyenne simple des points
+    const avgLat = polygon.reduce((sum, p) => sum + p[0], 0) / polygon.length;
+    const avgLng = polygon.reduce((sum, p) => sum + p[1], 0) / polygon.length;
+    return { latitude: avgLat, longitude: avgLng };
+  }
+
+  centroidLat /= (6 * signedArea);
+  centroidLng /= (6 * signedArea);
+
+  return { latitude: centroidLat, longitude: centroidLng };
+}
+
+/**
+ * ✅ Valide et parse un GeoJSON Polygon
+ * @returns {Array|null} Polygone valide ou null
+ */
+function parseGeoJSONPolygon(geoJsonString) {
+  if (!geoJsonString || typeof geoJsonString !== 'string') return null;
+
+  try {
+    const parsed = JSON.parse(geoJsonString);
+
+    // Format GeoJSON standard: {"type":"Polygon","coordinates":[[[lng,lat]...]]}
+    if (parsed.type === 'Polygon' && Array.isArray(parsed.coordinates)) {
+      const coords = parsed.coordinates[0]; // Outer ring
+
+      // Convertir [lng, lat] WGS84 vers [lat, lng] pour nos fonctions
+      return coords.map(coord => [coord[1], coord[0]]);
+    }
+
+    // Support MultiPolygon: prendre le premier polygon
+    if (parsed.type === 'MultiPolygon' && Array.isArray(parsed.coordinates)) {
+      const firstPolygon = parsed.coordinates[0][0];
+      return firstPolygon.map(coord => [coord[1], coord[0]]);
+    }
+
+    return null;
+  } catch (e) {
+    Logger.log(`⚠️ Erreur parsing GeoJSON: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * 💾 Valide et écrit un polygone dans une cellule
+ */
+function writePolygonToSheet(sheet, row, col, polygon) {
+  if (!polygon || !Array.isArray(polygon) || polygon.length < 3) {
+    Logger.log(`⚠️ Polygone invalide, ignoré pour ligne ${row}`);
+    return false;
+  }
+
+  // Convertir en GeoJSON WGS84 (lon/lat)
+  const geoJson = {
+    type: 'Polygon',
+    coordinates: [
+      polygon.map(coord => [coord[1], coord[0]]) // [lat, lng] → [lng, lat]
+    ]
+  };
+
+  try {
+    const jsonString = JSON.stringify(geoJson);
+    sheet.getRange(row, col).setValue(jsonString);
+    return true;
+  } catch (e) {
+    Logger.log(`❌ Erreur écriture polygone ligne ${row}: ${e.message}`);
+    return false;
   }
 }
