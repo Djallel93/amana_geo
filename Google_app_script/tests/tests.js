@@ -450,7 +450,7 @@ function cleanTestData() {
 
   // Décommenter pour exécuter
   /*
-  const sheets = [CONFIG.SHEETS.QUARTIER, CONFIG.SHEETS.SECTEUR, CONFIG.SHEETS.VILLE];
+  const sheets = [CONFIG.SHEETS.QUARTIERS, CONFIG.SHEETS.SECTEURS, CONFIG.SHEETS.VILLES];
   
   sheets.forEach(sheetName => {
     const sheet = getSheet(sheetName);

@@ -33,9 +33,9 @@ function onOpen() {
         .addSeparator()
         .addSubMenu(createMenu)
         .addSeparator()
-        .addSubMenu(bounadriesMenu)
-        .addSeparator()
         .addSubMenu(toolsMenu)
+        .addSeparator()
+        .addSubMenu(bounadriesMenu)
         .addSeparator()
         .addItem('📖 Documentation', 'showDocumentationDialog')
         .addToUi();

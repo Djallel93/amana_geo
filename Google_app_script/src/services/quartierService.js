@@ -62,7 +62,7 @@ function getAllQuartiers(hasCoordinates = true) {
   }
 
   // Charger depuis le sheet
-  const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
   const data = sheet.getDataRange().getValues();
 
   if (data.length <= 1) {
@@ -74,12 +74,12 @@ function getAllQuartiers(hasCoordinates = true) {
     .slice(1)
     .map(row => {
       const q = {
-        id: row[CONFIG.COLUMNS.QUARTIER.ID],
-        nom: row[CONFIG.COLUMNS.QUARTIER.NOM],
-        centreLatitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LAT] || null,
-        centreLongitude: row[CONFIG.COLUMNS.VILLE.CENTRE_LNG] || null,
-        polygonFrontiere: row[CONFIG.COLUMNS.VILLE.POLYGON] || null,
-        idSecteur: row[CONFIG.COLUMNS.QUARTIER.ID_SECTEUR]
+        id: row[CONFIG.COLUMNS.QUARTIERS.ID],
+        nom: row[CONFIG.COLUMNS.QUARTIERS.NOM],
+        centreLatitude: row[CONFIG.COLUMNS.VILLES.CENTRE_LAT] || null,
+        centreLongitude: row[CONFIG.COLUMNS.VILLES.CENTRE_LNG] || null,
+        polygonFrontiere: row[CONFIG.COLUMNS.VILLES.POLYGON] || null,
+        idSecteur: row[CONFIG.COLUMNS.QUARTIERS.ID_SECTEUR]
       };
 
       // Valider l'ID
@@ -318,7 +318,7 @@ function createQuartier(quartier) {
     throw new Error(`Secteur ${quartier.idSecteur} introuvable`);
   }
 
-  const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
   const lastRow = sheet.getLastRow();
 
   // Générer un nouvel ID (amélioration: vérifier unicité)
@@ -374,11 +374,11 @@ function updateQuartier(id, updates) {
     }
   }
 
-  const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
   const data = sheet.getDataRange().getValues();
 
   // Trouver la ligne du quartier
-  const rowIndex = data.findIndex(row => row[CONFIG.COLUMNS.QUARTIER.ID] == id);
+  const rowIndex = data.findIndex(row => row[CONFIG.COLUMNS.QUARTIERS.ID] == id);
 
   if (rowIndex === -1 || rowIndex === 0) {
     throw new Error(CONFIG.ERRORS.QUARTIER_NOT_FOUND);
@@ -392,28 +392,28 @@ function updateQuartier(id, updates) {
   if (updates.nom) {
     updateOperations.push({
       row: actualRow,
-      col: CONFIG.COLUMNS.QUARTIER.NOM + 1,
+      col: CONFIG.COLUMNS.QUARTIERS.NOM + 1,
       value: updates.nom.trim()
     });
   }
   if (updates.latitude !== undefined) {
     updateOperations.push({
       row: actualRow,
-      col: CONFIG.COLUMNS.QUARTIER.LATITUDE + 1,
+      col: CONFIG.COLUMNS.QUARTIERS.LATITUDE + 1,
       value: parseFloat(updates.latitude)
     });
   }
   if (updates.longitude !== undefined) {
     updateOperations.push({
       row: actualRow,
-      col: CONFIG.COLUMNS.QUARTIER.LONGITUDE + 1,
+      col: CONFIG.COLUMNS.QUARTIERS.LONGITUDE + 1,
       value: parseFloat(updates.longitude)
     });
   }
   if (updates.idSecteur) {
     updateOperations.push({
       row: actualRow,
-      col: CONFIG.COLUMNS.QUARTIER.ID_SECTEUR + 1,
+      col: CONFIG.COLUMNS.QUARTIERS.ID_SECTEUR + 1,
       value: updates.idSecteur
     });
   }
@@ -443,10 +443,10 @@ function deleteQuartier(id) {
     throw new Error('ID du quartier requis');
   }
 
-  const sheet = getSheet(CONFIG.SHEETS.QUARTIER);
+  const sheet = getSheet(CONFIG.SHEETS.QUARTIERS);
   const data = sheet.getDataRange().getValues();
 
-  const rowIndex = data.findIndex(row => row[CONFIG.COLUMNS.QUARTIER.ID] == id);
+  const rowIndex = data.findIndex(row => row[CONFIG.COLUMNS.QUARTIERS.ID] == id);
 
   if (rowIndex === -1 || rowIndex === 0) {
     throw new Error(CONFIG.ERRORS.QUARTIER_NOT_FOUND);

@@ -20,7 +20,7 @@ function setupBoundariesForAll() {
 
     const results = {
         villes: setupBoundariesForSheet(CONFIG.SHEETS.VILLES),
-        secteurs: setupBoundariesForSheet(CONFIG.SHEETS.SECTEURS),
+        // secteurs: setupBoundariesForSheet(CONFIG.SHEETS.SECTEURS),
         quartiers: setupBoundariesForSheet(CONFIG.SHEETS.QUARTIERS)
     };
 
@@ -173,7 +173,7 @@ function fetchFromNominatim(name, context) {
 
         const query = searchTerms.join(',');
 
-        const url = 'http://nominatim.openstreetmap.org/search?' +
+        const url = 'https://nominatim.openstreetmap.org/search?' +
             `q=${encodeURIComponent(query)}&` +
             'format=json&' +
             'polygon_geojson=1&' +

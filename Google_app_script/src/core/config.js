@@ -51,7 +51,7 @@ const CONFIG = {
     ) || 200,
     RAYON_TERRE_KM: 6371,
     DEFAULT_COUNTRY: 'France',
-    USER_AGENT: 'GoogleAppsScript-GeoAPI/2.1 (bigdjallel@gmail.com)' // Make sure this follows format: "AppName/Version (contact@email.com)"
+    USER_AGENT: 'AMANA-GeoAPI/2.1 (bigdjallel@gmail.com)' // Make sure this follows format: "AppName/Version (contact@email.com)"
   },
 
   // ⚠️ Messages d'erreur en français avec emojis
@@ -67,6 +67,7 @@ const CONFIG = {
  * 🔧 Récupère une feuille par nom
  */
 function getSheet(sheetName) {
+  console.log(`🔄 Récupération de la feuille: ${sheetName}`);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
