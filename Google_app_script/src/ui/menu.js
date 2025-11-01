@@ -1,6 +1,5 @@
 /**
- * Menu principal simplifié
- * VERSION SANS AUTH
+ * Menu principal de l'application
  */
 
 function onOpen() {
@@ -23,8 +22,8 @@ function onOpen() {
         .addItem('🔄 Calculer centroïdes secteurs', 'showCalculateCentroidsDialog')
         .addItem('🧹 Vider le cache', 'clearCacheUI');
 
-    const bounadriesMenu = ui.createMenu('🗺️ GEO API')
-        .addItem('🔄 Télécharger boundaries (OSM)', 'setupBoundariesUI')
+    const boundariesMenu = ui.createMenu('🗺️ Boundaries')
+        .addItem('🔄 Télécharger boundaries OSM', 'setupBoundariesUI')
         .addItem('🔍 Tester géocodage avec polygones', 'testGeocodeWithPolygonsUI')
         .addItem('🧹 Vider cache', 'clearCacheUI');
 
@@ -35,49 +34,50 @@ function onOpen() {
         .addSeparator()
         .addSubMenu(toolsMenu)
         .addSeparator()
-        .addSubMenu(bounadriesMenu)
+        .addSubMenu(boundariesMenu)
         .addSeparator()
         .addItem('📖 Documentation', 'showDocumentationDialog')
         .addToUi();
 
-    console.log('✅ Menu AMANA créé');
+    Logger.success('Menu AMANA créé');
 }
 
+// ========== DIALOGUES ==========
 
 function showGeocodeQuartiersDialog() {
-    showDialog('geocodeQuartiers', '📍 Géocoder les quartiers', 500, 550);
+    UIManager.showDialog('geocodeQuartiers', '📍 Géocoder les quartiers', 500, 550);
 }
 
 function showGeocodeVillesDialog() {
-    showDialog('geocodeVilles', '🏙️ Géocoder les villes', 500, 550);
+    UIManager.showDialog('geocodeVilles', '🏙️ Géocoder les villes', 500, 550);
 }
 
 function showFindQuartierDialog() {
-    showDialog('findQuartier', '🔍 Trouver un quartier', 500, 550);
+    UIManager.showDialog('findQuartier', '🔍 Trouver un quartier', 500, 550);
 }
 
 function showCalculateDistanceDialog() {
-    showDialog('calculateDistance', '📏 Calculer une distance', 500, 450);
+    UIManager.showDialog('calculateDistance', '📏 Calculer une distance', 500, 450);
 }
 
 function showQuartiersInRadiusDialog() {
-    showDialog('quartiersInRadius', '🎯 Quartiers dans un rayon', 550, 600);
+    UIManager.showDialog('quartiersInRadius', '🎯 Quartiers dans un rayon', 550, 600);
 }
 
 function showCreateVilleDialog() {
-    showDialog('createVille', '🏙️ Créer une nouvelle ville', 500, 450);
+    UIManager.showDialog('createVille', '🏙️ Créer une nouvelle ville', 500, 450);
 }
 
 function showCreateSecteurDialog() {
-    showDialog('createSecteur', '📍 Créer un nouveau secteur', 500, 550);
+    UIManager.showDialog('createSecteur', '📍 Créer un nouveau secteur', 500, 550);
 }
 
 function showCreateQuartierDialog() {
-    showDialog('createQuartier', '🏘️ Créer un nouveau quartier', 500, 650);
+    UIManager.showDialog('createQuartier', '🏘️ Créer un nouveau quartier', 500, 650);
 }
 
 function showCalculateCentroidsDialog() {
-    showDialog('calculateCentroids', '🔄 Calculer les centroïdes', 500, 350);
+    UIManager.showDialog('calculateCentroids', '🔄 Calculer les centroïdes', 500, 350);
 }
 
 function showDocumentationDialog() {
@@ -88,11 +88,77 @@ function showDocumentationDialog() {
     SpreadsheetApp.getUi().showModalDialog(html, '📖 Documentation');
 }
 
-function showDialog(filename, title, width, height) {
-    const html = HtmlService.createTemplateFromFile(`views/dialogs/${filename}.html`);
-    const output = html.evaluate()
-        .setWidth(width)
-        .setHeight(height);
+// ========== ACTIONS UI ==========
 
-    SpreadsheetApp.getUi().showModalDialog(output, title);
+function setupBoundariesUI() {
+    const ui = SpreadsheetApp.getUi();
+
+    const response = ui.alert(
+        '🌍 Télécharger boundaries OSM',
+        'Cette opération va télécharger les frontières géographiques depuis OpenStreetMap.\n\n' +
+        '⚠️ Durée estimée: 2-5 min par feuille\n' +
+        '📡 Rate limiting: 2 sec entre requêtes\n\n' +
+        'Continuer?',
+        ui.ButtonSet.YES_NO
+    );
+
+    if (response === ui.Button.YES) {
+        try {
+            const results = BoundaryService.setupBoundariesForAll();
+
+            ui.alert(
+                '✅ Acquisition terminée',
+                `Villes: ${results.villes.success} réussies, ${results.villes.failed} échouées\n` +
+                `Quartiers: ${results.quartiers.success} réussies, ${results.quartiers.failed} échouées`,
+                ui.ButtonSet.OK
+            );
+        } catch (e) {
+            ui.alert('❌ Erreur', e.message, ui.ButtonSet.OK);
+        }
+    }
+}
+
+function testGeocodeWithPolygonsUI() {
+    const ui = SpreadsheetApp.getUi();
+
+    const response = ui.prompt(
+        '🔍 Tester géocodage',
+        'Entrez une adresse à géocoder:',
+        ui.ButtonSet.OK_CANCEL
+    );
+
+    if (response.getSelectedButton() === ui.Button.OK) {
+        const address = response.getResponseText();
+
+        try {
+            const result = GeocodingService.findQuartierFromAddress(address);
+
+            ui.alert(
+                '✅ Quartier trouvé',
+                `Quartier: ${result.quartierNom}\n` +
+                `ID: ${result.quartierId}\n` +
+                `Méthode: ${result.resolutionMethod}\n` +
+                `${result.resolutionDetails ? 'Détails: ' + result.resolutionDetails : ''}`,
+                ui.ButtonSet.OK
+            );
+
+        } catch (e) {
+            ui.alert('❌ Erreur', e.message, ui.ButtonSet.OK);
+        }
+    }
+}
+
+function clearCacheUI() {
+    const ui = SpreadsheetApp.getUi();
+
+    const response = ui.alert(
+        '🧹 Vider cache',
+        'Vider tout le cache de géocodage?',
+        ui.ButtonSet.YES_NO
+    );
+
+    if (response === ui.Button.YES) {
+        CacheManager.clear();
+        ui.alert('✅ Cache vidé', 'Le cache a été nettoyé avec succès.', ui.ButtonSet.OK);
+    }
 }

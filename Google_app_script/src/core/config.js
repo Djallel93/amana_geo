@@ -1,77 +1,87 @@
-// ============================================================================
-// FICHIER: Code.js (Principal)
-// Description: Configuration centrale et fonctions core
-// ============================================================================
-
 /**
- * 🌍 Configuration centrale du projet GEO avec support polygones
- * Structure des sheets: villes | secteurs | quartiers avec polygon_frontiere
+ * GEO API - Configuration centralisée
+ * Version: 3.0 (Refactorée)
  */
-const CONFIG = {
-  // Noms exacts des feuilles (comme spécifié)
-  SHEETS: {
-    VILLES: 'villes',
-    SECTEURS: 'secteurs',
-    QUARTIERS: 'quartiers'
-  },
 
-  // 📋 Structure EXACTE des colonnes (index 0-based)
-  COLUMNS: {
-    VILLES: {
-      ID: 0,
-      NOM: 1,
-      CENTRE_LAT: 2,
-      CENTRE_LNG: 3,
-      POLYGON: 4,
-      CODE_POSTAL: 5,
-      DEPARTEMENT: 6
+const CONFIG = (() => {
+  const props = PropertiesService.getScriptProperties();
+
+  return {
+    // Noms des feuilles
+    SHEETS: {
+      VILLES: 'villes',
+      SECTEURS: 'secteurs',
+      QUARTIERS: 'quartiers'
     },
-    SECTEURS: {
-      ID: 0,
-      NOM: 1,
-      CENTRE_LAT: 2,
-      CENTRE_LNG: 3,
-      POLYGON: 4,
-      ID_VILLE: 5
+
+    // Structure des colonnes (0-indexed)
+    COLUMNS: {
+      VILLES: {
+        ID: 0,
+        NOM: 1,
+        CENTRE_LAT: 2,
+        CENTRE_LNG: 3,
+        POLYGON: 4,
+        CODE_POSTAL: 5,
+        DEPARTEMENT: 6
+      },
+      SECTEURS: {
+        ID: 0,
+        NOM: 1,
+        CENTRE_LAT: 2,
+        CENTRE_LNG: 3,
+        ID_VILLE: 4
+      },
+      QUARTIERS: {
+        ID: 0,
+        NOM: 1,
+        CENTRE_LAT: 2,
+        CENTRE_LNG: 3,
+        POLYGON: 4,
+        ID_SECTEUR: 5
+      }
     },
-    QUARTIERS: {
-      ID: 0,
-      NOM: 1,
-      CENTRE_LAT: 2,
-      CENTRE_LNG: 3,
-      POLYGON: 4,
-      ID_SECTEUR: 5
+
+    // Paramètres géospatiaux
+    GEO: {
+      RAYON_TERRE_KM: 6371,
+      SEUIL_PROXIMITE_M: parseInt(props.getProperty('NEAREST_THRESHOLD_M')) || 200,
+      DISTANCE_MAX_KM: parseInt(props.getProperty('MAX_DISTANCE_KM')) || 50,
+      PAYS_DEFAUT: 'France',
+      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/3.0 (bigdjallel@gmail.com)'
+    },
+
+    // Configuration du cache
+    CACHE: {
+      DUREE_DEFAUT: parseInt(props.getProperty('CACHE_DURATION')) || 3600,
+      TAILLE_MAX_ENTREE: 100000
+    },
+
+    // Messages d'erreur
+    ERRORS: {
+      INVALID_COORDINATES: 'COORDONNEES_INVALIDES',
+      INVALID_GEOJSON: 'GEOJSON_INVALIDE',
+      NO_POLYGON: 'AUCUN_POLYGONE',
+      GEOCODING_FAILED: 'GEOCODAGE_ECHOUE',
+      NO_MATCH: 'AUCUNE_CORRESPONDANCE',
+      MISSING_PARAMETERS: 'PARAMETRES_MANQUANTS',
+      QUARTIER_NOT_FOUND: 'QUARTIER_INTROUVABLE',
+      VILLE_NOT_FOUND: 'VILLE_INTROUVABLE',
+      SECTEUR_NOT_FOUND: 'SECTEUR_INTROUVABLE'
     }
-  },
-
-  // 🔧 Paramètres géospatiaux (configurables via Script Properties)
-  GEO: {
-    NEAREST_THRESHOLD_M: parseFloat(
-      PropertiesService.getScriptProperties().getProperty('NEAREST_CENTROID_THRESHOLD_METERS')
-    ) || 200,
-    RAYON_TERRE_KM: 6371,
-    DEFAULT_COUNTRY: 'France',
-    USER_AGENT: 'AMANA-GeoAPI/2.1 (bigdjallel@gmail.com)' // Make sure this follows format: "AppName/Version (contact@email.com)"
-  },
-
-  // ⚠️ Messages d'erreur en français avec emojis
-  ERRORS: {
-    INVALID_GEOJSON: '❌ GeoJSON invalide',
-    NO_POLYGON: '⚠️ Aucun polygone disponible',
-    GEOCODING_FAILED: '❌ Échec du géocodage',
-    NO_MATCH: '🔍 Aucun quartier trouvé'
-  }
-};
+  };
+})();
 
 /**
- * 🔧 Récupère une feuille par nom
+ * Récupère une feuille avec validation
  */
 function getSheet(sheetName) {
-  console.log(`🔄 Récupération de la feuille: ${sheetName}`);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
+
   if (!sheet) {
-    throw new Error(`❌ Feuille "${sheetName}" introuvable`);
+    throw new Error(`Feuille "${sheetName}" introuvable`);
   }
+
   return sheet;
 }
