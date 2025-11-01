@@ -23,23 +23,10 @@ const Utils = {
     return degrees * Math.PI / 180;
   },
 
-  toDegrees(radians) {
-    return radians * 180 / Math.PI;
-  },
-
-  // ========== FORMATAGE ==========
-
   roundTo(value, decimals = 2) {
     if (typeof value !== 'number' || isNaN(value)) return 0;
     const multiplier = Math.pow(10, decimals);
     return Math.round(value * multiplier) / multiplier;
-  },
-
-  formatDistance(km) {
-    if (typeof km !== 'number' || isNaN(km) || km < 0) return '0 m';
-    if (km < 1) return `${Math.round(km * 1000)} m`;
-    if (km >= 1000) return `${this.roundTo(km / 1000, 1)} Mm`;
-    return `${this.roundTo(km, 2)} km`;
   },
 
   // ========== DISTANCE ==========
@@ -96,43 +83,6 @@ const Utils = {
   },
 
   /**
-   * Calcule le centroïde d'un polygone
-   */
-  polygonCentroid(polygon) {
-    if (!polygon || polygon.length < 3) {
-      return { latitude: null, longitude: null };
-    }
-
-    let centroidLat = 0;
-    let centroidLng = 0;
-    let signedArea = 0;
-
-    for (let i = 0; i < polygon.length; i++) {
-      const j = (i + 1) % polygon.length;
-      const [latI, lngI] = polygon[i];
-      const [latJ, lngJ] = polygon[j];
-
-      const cross = latI * lngJ - latJ * lngI;
-      signedArea += cross;
-      centroidLat += (latI + latJ) * cross;
-      centroidLng += (lngI + lngJ) * cross;
-    }
-
-    signedArea *= 0.5;
-
-    if (Math.abs(signedArea) < 1e-10) {
-      const avgLat = polygon.reduce((sum, p) => sum + p[0], 0) / polygon.length;
-      const avgLng = polygon.reduce((sum, p) => sum + p[1], 0) / polygon.length;
-      return { latitude: avgLat, longitude: avgLng };
-    }
-
-    return {
-      latitude: centroidLat / (6 * signedArea),
-      longitude: centroidLng / (6 * signedArea)
-    };
-  },
-
-  /**
    * Parse un GeoJSON Polygon
    */
   parseGeoJSONPolygon(geoJsonString) {
@@ -154,48 +104,6 @@ const Utils = {
       Logger.warn(`Erreur parsing GeoJSON: ${e.message}`);
       return null;
     }
-  },
-
-  /**
-   * Écrit un polygone dans une cellule
-   */
-  writePolygonToSheet(sheet, row, col, polygon) {
-    if (!polygon || !Array.isArray(polygon) || polygon.length < 3) {
-      Logger.warn(`Polygone invalide pour ligne ${row}`);
-      return false;
-    }
-
-    const geoJson = {
-      type: 'Polygon',
-      coordinates: [polygon.map(coord => [coord[1], coord[0]])]
-    };
-
-    try {
-      sheet.getRange(row, col).setValue(JSON.stringify(geoJson));
-      return true;
-    } catch (e) {
-      Logger.error(`Erreur écriture polygone ligne ${row}`, { error: e.message });
-      return false;
-    }
-  },
-
-  // ========== BOUNDING BOX ==========
-
-  calculateBoundingBox(lat, lng, radiusKm) {
-    const deltaLat = radiusKm / 111.0;
-    const deltaLng = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
-
-    return {
-      minLat: this.roundTo(lat - deltaLat, 6),
-      maxLat: this.roundTo(lat + deltaLat, 6),
-      minLng: this.roundTo(lng - deltaLng, 6),
-      maxLng: this.roundTo(lng + deltaLng, 6)
-    };
-  },
-
-  isPointInBounds(lat, lng, bounds) {
-    return lat >= bounds.minLat && lat <= bounds.maxLat &&
-      lng >= bounds.minLng && lng <= bounds.maxLng;
   },
 
   // ========== API RESPONSES ==========

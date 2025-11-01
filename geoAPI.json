@@ -1,17 +1,37 @@
 {
   "info": {
-    "name": "AMANA GEO API",
-    "description": "API de géolocalisation pour la gestion des villes, secteurs et quartiers français.\n\n## Configuration\n\n1. Remplacez la variable `{{DEPLOYMENT_ID}}` par votre ID de déploiement Google Apps Script\n2. Les requêtes sont prêtes à l'emploi avec des exemples de paramètres\n\n## Fonctionnalités\n\n- Géocodage d'adresses françaises\n- Recherche de quartiers par proximité (avec polygones)\n- Calcul de distances géographiques\n- Gestion CRUD des entités (villes, secteurs, quartiers)\n\n## Rate Limiting\n\n- Google Maps : 1000 requêtes/jour\n- Cache : 1 heure\n- OSM Nominatim : 1 req/sec",
+    "name": "AMANA GEO API v4.0 (Read-Only)",
+    "description": "API de géolocalisation en lecture seule avec authentification par API Key.\n\n## 🔐 Authentification\n\nTOUTES les requêtes nécessitent le header:\n```\nX-Api-Key: your-api-key-here\n```\n\n## 🎯 Résolution\n\nRésolution basée UNIQUEMENT sur les polygones (point-in-polygon).\nPas de fallback par distance.\n\n## ⚠️ Breaking Changes v4.0\n\n- Secteurs supprimés\n- Centroïdes supprimés\n- Endpoints CREATE/UPDATE/DELETE supprimés\n- Authentification obligatoire",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.1.0"
+    "version": "4.0.0"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
       "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "your-api-key-here",
+      "type": "string"
     }
   ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-Api-Key",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "🌍 Geocoding",
@@ -22,32 +42,20 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}?action=geocode&address=1 Place Bellecour, 69002 Lyon, France&country=France",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "raw": "{{baseUrl}}?action=geocode&address=1 Place Bellecour, 69002 Lyon, France",
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
-                  "value": "geocode",
-                  "description": "Action à effectuer"
+                  "value": "geocode"
                 },
                 {
                   "key": "address",
-                  "value": "1 Place Bellecour, 69002 Lyon, France",
-                  "description": "Adresse à géocoder"
-                },
-                {
-                  "key": "country",
-                  "value": "France",
-                  "description": "Pays (optionnel)",
-                  "disabled": false
+                  "value": "1 Place Bellecour, 69002 Lyon, France"
                 }
               ]
-            },
-            "description": "Convertit une adresse textuelle en coordonnées GPS.\n\n**Paramètres:**\n- `address` (requis): Adresse à géocoder\n- `country` (optionnel): Pays pour filtrer les résultats (défaut: France)\n\n**Réponse:**\n```json\n{\n  \"isValid\": true,\n  \"coordinates\": {\n    \"latitude\": 45.7578,\n    \"longitude\": 4.8320\n  },\n  \"formattedAddress\": \"1 Place Bellecour, 69002 Lyon, France\",\n  \"locationType\": \"ROOFTOP\"\n}\n```"
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Reverse Geocoding",
@@ -56,9 +64,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=reversegeocode&lat=47.2173&lng=-1.5536",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -66,86 +72,29 @@
                 },
                 {
                   "key": "lat",
-                  "value": "47.2173",
-                  "description": "Latitude"
+                  "value": "47.2173"
                 },
                 {
                   "key": "lng",
-                  "value": "-1.5536",
-                  "description": "Longitude"
+                  "value": "-1.5536"
                 }
               ]
-            },
-            "description": "Convertit des coordonnées GPS en adresse.\n\n**Paramètres:**\n- `lat` (requis): Latitude\n- `lng` (requis): Longitude"
-          },
-          "response": []
-        },
-        {
-          "name": "Valider une adresse",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=validate&address=1 Place Bellecour, Lyon",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "validate"
-                },
-                {
-                  "key": "address",
-                  "value": "1 Place Bellecour, Lyon",
-                  "description": "Adresse à valider"
-                }
-              ]
-            },
-            "description": "Vérifie si une adresse est valide et géocodable."
-          },
-          "response": []
-        },
-        {
-          "name": "Géocodage batch",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"batchgeocode\",\n  \"addresses\": [\n    \"1 Place Bellecour, Lyon\",\n    \"1 Rue de la République, Marseille\",\n    \"Place du Capitole, Toulouse\",\n    \"Place Stanislas, Nancy\",\n    \"Grand Place, Lille\"\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Géocode plusieurs adresses en une seule requête.\n\n**Body JSON:**\n```json\n{\n  \"action\": \"batchgeocode\",\n  \"addresses\": [\"adresse1\", \"adresse2\", ...]\n}\n```"
-          },
-          "response": []
+            }
+          }
         }
-      ],
-      "description": "Endpoints de géocodage d'adresses"
+      ]
     },
     {
       "name": "🏘️ Quartiers",
       "item": [
         {
-          "name": "Trouver le quartier le plus proche",
+          "name": "Trouver quartier par coordonnées",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}?action=findquartier&lat=47.2173&lng=-1.5536&maxDistance=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "raw": "{{baseUrl}}?action=findquartier&lat=47.2173&lng=-1.5536",
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -160,18 +109,11 @@
                   "key": "lng",
                   "value": "-1.5536",
                   "description": "Longitude"
-                },
-                {
-                  "key": "maxDistance",
-                  "value": "50",
-                  "description": "Distance maximale en km (optionnel)",
-                  "disabled": false
                 }
               ]
             },
-            "description": "Trouve le quartier le plus proche d'un point GPS avec résolution intelligente:\n\n1. **Point-in-polygon** (priorité haute)\n2. **Point-in-multiple-polygons** (sélection du plus petit)\n3. **Nearest-centroid-within-threshold** (< 200m)\n4. **Fallback to secteur** (centroid du secteur parent)\n\n**Réponse:**\n```json\n{\n  \"quartierId\": \"Q001\",\n  \"quartierNom\": \"Centre-Ville\",\n  \"distance\": 1.234,\n  \"resolutionMethod\": \"point-in-polygon\",\n  \"resolutionDetails\": \"Point dans 1 polygone\"\n}\n```"
-          },
-          "response": []
+            "description": "⚠️ Les coordonnées DOIVENT être dans un polygon.\nPas de fallback par distance."
+          }
         },
         {
           "name": "Liste tous les quartiers",
@@ -180,25 +122,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=getquartiers",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
                   "value": "getquartiers"
-                },
-                {
-                  "key": "idSecteur",
-                  "value": "S001",
-                  "description": "Filtrer par secteur (optionnel)",
-                  "disabled": true
                 }
               ]
-            },
-            "description": "Récupère tous les quartiers, avec filtre optionnel par secteur."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Récupérer un quartier par ID",
@@ -207,9 +139,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=getquartier&id=Q001",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -217,14 +147,11 @@
                 },
                 {
                   "key": "id",
-                  "value": "Q001",
-                  "description": "ID du quartier"
+                  "value": "Q001"
                 }
               ]
-            },
-            "description": "Récupère les détails d'un quartier spécifique."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Quartiers d'une ville",
@@ -233,9 +160,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=quartiersbyville&idVille=V001",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -243,179 +168,43 @@
                 },
                 {
                   "key": "idVille",
-                  "value": "V001",
-                  "description": "ID de la ville"
+                  "value": "V001"
                 }
               ]
-            },
-            "description": "Récupère tous les quartiers d'une ville (via ses secteurs)."
-          },
-          "response": []
-        },
-        {
-          "name": "Quartiers dans un rayon",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=quartiersinradius&lat=47.2173&lng=-1.5536&radius=10",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "quartiersinradius"
-                },
-                {
-                  "key": "lat",
-                  "value": "47.2173",
-                  "description": "Latitude"
-                },
-                {
-                  "key": "lng",
-                  "value": "-1.5536",
-                  "description": "Longitude"
-                },
-                {
-                  "key": "radius",
-                  "value": "10",
-                  "description": "Rayon en km (défaut: 10)"
-                }
-              ]
-            },
-            "description": "Trouve tous les quartiers dans un rayon donné autour d'un point."
-          },
-          "response": []
-        },
-        {
-          "name": "Géocoder un quartier",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=geocodequartier&id=Q001",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "geocodequartier"
-                },
-                {
-                  "key": "id",
-                  "value": "Q001",
-                  "description": "ID du quartier à géocoder"
-                }
-              ]
-            },
-            "description": "Géocode un quartier et met à jour ses coordonnées."
-          },
-          "response": []
-        },
-        {
-          "name": "Créer un quartier",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"createquartier\",\n  \"nom\": \"Centre-Ville\",\n  \"latitude\": 47.2173,\n  \"longitude\": -1.5536,\n  \"idSecteur\": \"S001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Crée un nouveau quartier.\n\n**Paramètres requis:**\n- `nom`: Nom du quartier\n- `latitude`: Latitude GPS\n- `longitude`: Longitude GPS\n- `idSecteur`: ID du secteur parent"
-          },
-          "response": []
-        },
-        {
-          "name": "Mettre à jour un quartier",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"updatequartier\",\n  \"id\": \"Q001\",\n  \"nom\": \"Nouveau nom\",\n  \"latitude\": 47.2180,\n  \"longitude\": -1.5540\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Met à jour un quartier existant.\n\n**Paramètres:**\n- `id` (requis): ID du quartier\n- `nom` (optionnel): Nouveau nom\n- `latitude` (optionnel): Nouvelle latitude\n- `longitude` (optionnel): Nouvelle longitude\n- `idSecteur` (optionnel): Nouveau secteur"
-          },
-          "response": []
-        },
-        {
-          "name": "Supprimer un quartier",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"deletequartier\",\n  \"id\": \"Q001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Supprime un quartier."
-          },
-          "response": []
-        },
-        {
-          "name": "Géocoder tous les quartiers d'une ville",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"geocodequartiersofville\",\n  \"idVille\": \"V001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Géocode en batch tous les quartiers d'une ville."
-          },
-          "response": []
+            }
+          }
         }
-      ],
-      "description": "Gestion et recherche de quartiers"
+      ]
     },
     {
       "name": "🏙️ Villes",
       "item": [
+        {
+          "name": "Trouver ville par coordonnées (NOUVEAU)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}?action=findville&lat=47.2173&lng=-1.5536",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "findville"
+                },
+                {
+                  "key": "lat",
+                  "value": "47.2173"
+                },
+                {
+                  "key": "lng",
+                  "value": "-1.5536"
+                }
+              ]
+            },
+            "description": "✨ NOUVEAU dans v4.0\n\nTrouve la ville contenant les coordonnées (polygon)."
+          }
+        },
         {
           "name": "Liste toutes les villes",
           "request": {
@@ -423,19 +212,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=getvilles",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
                   "value": "getvilles"
                 }
               ]
-            },
-            "description": "Récupère la liste complète des villes."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Récupérer une ville par ID",
@@ -444,9 +229,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=getville&id=V001",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -454,14 +237,11 @@
                 },
                 {
                   "key": "id",
-                  "value": "V001",
-                  "description": "ID de la ville"
+                  "value": "V001"
                 }
               ]
-            },
-            "description": "Récupère les détails d'une ville spécifique."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Rechercher des villes",
@@ -470,9 +250,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=searchvilles&nom=Nantes",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -481,272 +259,19 @@
                 {
                   "key": "nom",
                   "value": "Nantes",
-                  "description": "Nom de la ville (recherche partielle)",
-                  "disabled": false
+                  "description": "Recherche par nom (partiel)"
                 },
                 {
                   "key": "codePostal",
                   "value": "44000",
-                  "description": "Code postal exact",
+                  "description": "Recherche par code postal (exact)",
                   "disabled": true
                 }
               ]
-            },
-            "description": "Recherche des villes par nom (partiel) ou code postal exact.\n\nUtilisez soit `nom` soit `codePostal`."
-          },
-          "response": []
-        },
-        {
-          "name": "Géocoder une ville",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=geocodeville&id=V001",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "geocodeville"
-                },
-                {
-                  "key": "id",
-                  "value": "V001",
-                  "description": "ID de la ville"
-                }
-              ]
-            },
-            "description": "Géocode une ville et met à jour ses coordonnées centrales."
-          },
-          "response": []
-        },
-        {
-          "name": "Créer une ville",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"createville\",\n  \"nom\": \"Nantes\",\n  \"codePostal\": \"44000\",\n  \"departement\": \"Loire-Atlantique\",\n  \"pays\": \"France\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Crée une nouvelle ville.\n\n**Paramètres requis:**\n- `nom`: Nom de la ville\n- `codePostal`: Code postal\n\n**Paramètres optionnels:**\n- `departement`: Département\n- `pays`: Pays (défaut: France)"
-          },
-          "response": []
-        },
-        {
-          "name": "Mettre à jour une ville",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"updateville\",\n  \"id\": \"V001\",\n  \"nom\": \"Nantes\",\n  \"departement\": \"Loire-Atlantique\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Met à jour une ville existante."
-          },
-          "response": []
-        },
-        {
-          "name": "Supprimer une ville",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"deleteville\",\n  \"id\": \"V001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Supprime une ville."
-          },
-          "response": []
+            }
+          }
         }
-      ],
-      "description": "Gestion des villes"
-    },
-    {
-      "name": "📍 Secteurs",
-      "item": [
-        {
-          "name": "Liste tous les secteurs",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getsecteurs",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getsecteurs"
-                }
-              ]
-            },
-            "description": "Récupère la liste complète des secteurs."
-          },
-          "response": []
-        },
-        {
-          "name": "Récupérer un secteur par ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getsecteur&id=S001",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getsecteur"
-                },
-                {
-                  "key": "id",
-                  "value": "S001",
-                  "description": "ID du secteur"
-                }
-              ]
-            },
-            "description": "Récupère les détails d'un secteur spécifique."
-          },
-          "response": []
-        },
-        {
-          "name": "Secteurs d'une ville",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=secteursbyville&idVille=V001",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "secteursbyville"
-                },
-                {
-                  "key": "idVille",
-                  "value": "V001",
-                  "description": "ID de la ville"
-                }
-              ]
-            },
-            "description": "Récupère tous les secteurs d'une ville."
-          },
-          "response": []
-        },
-        {
-          "name": "Créer un secteur",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"createsecteur\",\n  \"nom\": \"Centre\",\n  \"idVille\": \"V001\",\n  \"latitude\": 47.2173,\n  \"longitude\": -1.5536\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Crée un nouveau secteur.\n\n**Paramètres requis:**\n- `nom`: Nom du secteur\n- `idVille`: ID de la ville parent\n\n**Paramètres optionnels:**\n- `latitude`: Latitude GPS\n- `longitude`: Longitude GPS"
-          },
-          "response": []
-        },
-        {
-          "name": "Mettre à jour un secteur",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"updatesecteur\",\n  \"id\": \"S001\",\n  \"nom\": \"Centre-Ville\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Met à jour un secteur existant."
-          },
-          "response": []
-        },
-        {
-          "name": "Supprimer un secteur",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"deletesecteur\",\n  \"id\": \"S001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": [
-                "{{baseUrl}}"
-              ]
-            },
-            "description": "Supprime un secteur."
-          },
-          "response": []
-        }
-      ],
-      "description": "Gestion des secteurs"
+      ]
     },
     {
       "name": "📏 Distance",
@@ -758,9 +283,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=calculatedistance&lat1=48.8566&lng1=2.3522&lat2=47.2173&lng2=-1.5536",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
@@ -787,49 +310,10 @@
                   "description": "Longitude point 2"
                 }
               ]
-            },
-            "description": "Calcule la distance entre deux points GPS (formule de Haversine).\n\n**Exemple:** Distance Paris → Nantes"
-          },
-          "response": []
-        },
-        {
-          "name": "Calculer plusieurs distances",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=calculatedistances&originLat=48.8566&originLng=2.3522&destinations=[{\"lat\":45.7640,\"lng\":4.8357,\"name\":\"Lyon\"},{\"lat\":43.2965,\"lng\":5.3698,\"name\":\"Marseille\"},{\"lat\":44.8378,\"lng\":-0.5792,\"name\":\"Bordeaux\"}]",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "calculatedistances"
-                },
-                {
-                  "key": "originLat",
-                  "value": "48.8566",
-                  "description": "Latitude origine (Paris)"
-                },
-                {
-                  "key": "originLng",
-                  "value": "2.3522",
-                  "description": "Longitude origine"
-                },
-                {
-                  "key": "destinations",
-                  "value": "[{\"lat\":45.7640,\"lng\":4.8357,\"name\":\"Lyon\"},{\"lat\":43.2965,\"lng\":5.3698,\"name\":\"Marseille\"},{\"lat\":44.8378,\"lng\":-0.5792,\"name\":\"Bordeaux\"}]",
-                  "description": "Array JSON de destinations"
-                }
-              ]
-            },
-            "description": "Calcule les distances entre un point d'origine et plusieurs destinations.\n\n**Format destinations:**\n```json\n[\n  {\"lat\": 45.764, \"lng\": 4.8357, \"name\": \"Lyon\"},\n  {\"lat\": 43.2965, \"lng\": 5.3698, \"name\": \"Marseille\"}\n]\n```"
-          },
-          "response": []
+            }
+          }
         }
-      ],
-      "description": "Calculs de distances géographiques"
+      ]
     },
     {
       "name": "🔧 Utils",
@@ -841,22 +325,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}?action=ping",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "query": [
                 {
                   "key": "action",
                   "value": "ping"
                 }
               ]
-            },
-            "description": "Vérifie que l'API est opérationnelle.\n\n**Réponse:**\n```json\n{\n  \"status\": \"ok\",\n  \"message\": \"GEO API opérationnelle\",\n  \"timestamp\": \"2025-11-01T12:00:00.000Z\"\n}\n```"
-          },
-          "response": []
+            }
+          }
         }
-      ],
-      "description": "Utilitaires et tests"
+      ]
     }
   ]
 }

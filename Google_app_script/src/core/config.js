@@ -1,6 +1,6 @@
 /**
  * GEO API - Configuration centralisée
- * Version: 3.0 (Refactorée)
+ * Version: 4.0 (Read-Only API with Polygon-based resolution)
  */
 
 const CONFIG = (() => {
@@ -10,7 +10,6 @@ const CONFIG = (() => {
     // Noms des feuilles
     SHEETS: {
       VILLES: 'villes',
-      SECTEURS: 'secteurs',
       QUARTIERS: 'quartiers'
     },
 
@@ -19,36 +18,23 @@ const CONFIG = (() => {
       VILLES: {
         ID: 0,
         NOM: 1,
-        CENTRE_LAT: 2,
-        CENTRE_LNG: 3,
-        POLYGON: 4,
-        CODE_POSTAL: 5,
-        DEPARTEMENT: 6
-      },
-      SECTEURS: {
-        ID: 0,
-        NOM: 1,
-        CENTRE_LAT: 2,
-        CENTRE_LNG: 3,
-        ID_VILLE: 4
+        POLYGON: 2,
+        CODE_POSTAL: 3,
+        DEPARTEMENT: 4
       },
       QUARTIERS: {
         ID: 0,
         NOM: 1,
-        CENTRE_LAT: 2,
-        CENTRE_LNG: 3,
-        POLYGON: 4,
-        ID_SECTEUR: 5
+        POLYGON: 2,
+        ID_VILLE: 3
       }
     },
 
     // Paramètres géospatiaux
     GEO: {
       RAYON_TERRE_KM: 6371,
-      SEUIL_PROXIMITE_M: parseInt(props.getProperty('NEAREST_THRESHOLD_M')) || 200,
-      DISTANCE_MAX_KM: parseInt(props.getProperty('MAX_DISTANCE_KM')) || 50,
       PAYS_DEFAUT: 'France',
-      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/3.0 (bigdjallel@gmail.com)'
+      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/4.0 (bigdjallel@gmail.com)'
     },
 
     // Configuration du cache
@@ -57,17 +43,21 @@ const CONFIG = (() => {
       TAILLE_MAX_ENTREE: 100000
     },
 
+    // Authentification
+    AUTH: {
+      API_KEY: props.getProperty('API_KEY') || ''
+    },
+
     // Messages d'erreur
     ERRORS: {
       INVALID_COORDINATES: 'COORDONNEES_INVALIDES',
       INVALID_GEOJSON: 'GEOJSON_INVALIDE',
-      NO_POLYGON: 'AUCUN_POLYGONE',
       GEOCODING_FAILED: 'GEOCODAGE_ECHOUE',
       NO_MATCH: 'AUCUNE_CORRESPONDANCE',
       MISSING_PARAMETERS: 'PARAMETRES_MANQUANTS',
+      UNAUTHORIZED: 'NON_AUTORISE',
       QUARTIER_NOT_FOUND: 'QUARTIER_INTROUVABLE',
-      VILLE_NOT_FOUND: 'VILLE_INTROUVABLE',
-      SECTEUR_NOT_FOUND: 'SECTEUR_INTROUVABLE'
+      VILLE_NOT_FOUND: 'VILLE_INTROUVABLE'
     }
   };
 })();
