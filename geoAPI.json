@@ -1,341 +1,430 @@
 {
-  "info": {
-    "name": "AMANA GEO API v4.0 (Read-Only)",
-    "description": "API de géolocalisation en lecture seule avec authentification par API Key.\n\n## 🔐 Authentification\n\nTOUTES les requêtes nécessitent le header:\n```\nX-Api-Key: your-api-key-here\n```\n\n## 🎯 Résolution\n\nRésolution basée UNIQUEMENT sur les polygones (point-in-polygon).\nPas de fallback par distance.\n\n## ⚠️ Breaking Changes v4.0\n\n- Secteurs supprimés\n- Centroïdes supprimés\n- Endpoints CREATE/UPDATE/DELETE supprimés\n- Authentification obligatoire",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "4.0.0"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
-      "type": "string"
-    },
-    {
-      "key": "apiKey",
-      "value": "your-api-key-here",
-      "type": "string"
-    }
-  ],
-  "auth": {
-    "type": "apikey",
-    "apikey": [
-      {
-        "key": "value",
-        "value": "{{apiKey}}",
-        "type": "string"
-      },
-      {
-        "key": "key",
-        "value": "X-Api-Key",
-        "type": "string"
-      }
-    ]
-  },
-  "item": [
-    {
-      "name": "🌍 Geocoding",
-      "item": [
-        {
-          "name": "Géocoder une adresse",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=geocode&address=1 Place Bellecour, 69002 Lyon, France",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "geocode"
-                },
-                {
-                  "key": "address",
-                  "value": "1 Place Bellecour, 69002 Lyon, France"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reverse Geocoding",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=reversegeocode&lat=47.2173&lng=-1.5536",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "reversegeocode"
-                },
-                {
-                  "key": "lat",
-                  "value": "47.2173"
-                },
-                {
-                  "key": "lng",
-                  "value": "-1.5536"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🏘️ Quartiers",
-      "item": [
-        {
-          "name": "Trouver quartier par coordonnées",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=findquartier&lat=47.2173&lng=-1.5536",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "findquartier"
-                },
-                {
-                  "key": "lat",
-                  "value": "47.2173",
-                  "description": "Latitude"
-                },
-                {
-                  "key": "lng",
-                  "value": "-1.5536",
-                  "description": "Longitude"
-                }
-              ]
-            },
-            "description": "⚠️ Les coordonnées DOIVENT être dans un polygon.\nPas de fallback par distance."
-          }
-        },
-        {
-          "name": "Liste tous les quartiers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getquartiers",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getquartiers"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Récupérer un quartier par ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getquartier&id=Q001",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getquartier"
-                },
-                {
-                  "key": "id",
-                  "value": "Q001"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Quartiers d'une ville",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=quartiersbyville&idVille=V001",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "quartiersbyville"
-                },
-                {
-                  "key": "idVille",
-                  "value": "V001"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🏙️ Villes",
-      "item": [
-        {
-          "name": "Trouver ville par coordonnées (NOUVEAU)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=findville&lat=47.2173&lng=-1.5536",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "findville"
-                },
-                {
-                  "key": "lat",
-                  "value": "47.2173"
-                },
-                {
-                  "key": "lng",
-                  "value": "-1.5536"
-                }
-              ]
-            },
-            "description": "✨ NOUVEAU dans v4.0\n\nTrouve la ville contenant les coordonnées (polygon)."
-          }
-        },
-        {
-          "name": "Liste toutes les villes",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getvilles",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getvilles"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Récupérer une ville par ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=getville&id=V001",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "getville"
-                },
-                {
-                  "key": "id",
-                  "value": "V001"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Rechercher des villes",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=searchvilles&nom=Nantes",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "searchvilles"
-                },
-                {
-                  "key": "nom",
-                  "value": "Nantes",
-                  "description": "Recherche par nom (partiel)"
-                },
-                {
-                  "key": "codePostal",
-                  "value": "44000",
-                  "description": "Recherche par code postal (exact)",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📏 Distance",
-      "item": [
-        {
-          "name": "Calculer une distance",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=calculatedistance&lat1=48.8566&lng1=2.3522&lat2=47.2173&lng2=-1.5536",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "calculatedistance"
-                },
-                {
-                  "key": "lat1",
-                  "value": "48.8566",
-                  "description": "Latitude point 1 (Paris)"
-                },
-                {
-                  "key": "lng1",
-                  "value": "2.3522",
-                  "description": "Longitude point 1"
-                },
-                {
-                  "key": "lat2",
-                  "value": "47.2173",
-                  "description": "Latitude point 2 (Nantes)"
-                },
-                {
-                  "key": "lng2",
-                  "value": "-1.5536",
-                  "description": "Longitude point 2"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🔧 Utils",
-      "item": [
-        {
-          "name": "Ping - Test connectivité",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}?action=ping",
-              "host": ["{{baseUrl}}"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "ping"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    }
-  ]
+	"info": {
+		"_postman_id": "3bb27e16-516e-4d3e-ba93-ab71e0cb0e15",
+		"name": "AMANA GEO API v4.0 (Read-Only)",
+		"description": "API de géolocalisation en lecture seule avec authentification par API Key.\n\n## 🔐 Authentification\n\nTOUTES les requêtes nécessitent le header:\n```\nX-Api-Key: your-api-key-here\n```\n\n## 🎯 Résolution\n\nRésolution basée UNIQUEMENT sur les polygones (point-in-polygon).\nPas de fallback par distance.\n\n## ⚠️ Breaking Changes v4.0\n\n- Secteurs supprimés\n- Centroïdes supprimés\n- Endpoints CREATE/UPDATE/DELETE supprimés\n- Authentification obligatoire",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15533722",
+		"_collection_link": "https://amana0.postman.co/workspace/Amana---GEO~33e3a153-2117-4d9c-86ce-6a618a7201b6/collection/15533722-3bb27e16-516e-4d3e-ba93-ab71e0cb0e15?action=share&source=collection_link&creator=15533722"
+	},
+	"item": [
+		{
+			"name": "🌍 Geocoding",
+			"item": [
+				{
+					"name": "Géocoder une adresse",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=geocode&address=1 Place Bellecour, 69002 Lyon, France&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "geocode"
+								},
+								{
+									"key": "address",
+									"value": "1 Place Bellecour, 69002 Lyon, France"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reverse Geocoding",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=reversegeocode&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "reversegeocode"
+								},
+								{
+									"key": "lat",
+									"value": "47.2173"
+								},
+								{
+									"key": "lng",
+									"value": "-1.5536"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏘️ Quartiers",
+			"item": [
+				{
+					"name": "Trouver quartier par coordonnées",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=findquartier&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "findquartier"
+								},
+								{
+									"key": "lat",
+									"value": "47.2173",
+									"description": "Latitude"
+								},
+								{
+									"key": "lng",
+									"value": "-1.5536",
+									"description": "Longitude"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "⚠️ Les coordonnées DOIVENT être dans un polygon.\nPas de fallback par distance."
+					},
+					"response": []
+				},
+				{
+					"name": "Liste tous les quartiers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getquartiers&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getquartiers"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Récupérer un quartier par ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getquartier&id=3&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getquartier"
+								},
+								{
+									"key": "id",
+									"value": "3"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Quartiers d'une ville",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=quartiersbyville&idVille=1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "quartiersbyville"
+								},
+								{
+									"key": "idVille",
+									"value": "1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏙️ Villes",
+			"item": [
+				{
+					"name": "Trouver ville par coordonnées",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=findville&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "findville"
+								},
+								{
+									"key": "lat",
+									"value": "47.2173"
+								},
+								{
+									"key": "lng",
+									"value": "-1.5536"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "✨ NOUVEAU dans v4.0\n\nTrouve la ville contenant les coordonnées (polygon)."
+					},
+					"response": []
+				},
+				{
+					"name": "Liste toutes les villes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getvilles&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getvilles"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Récupérer une ville par ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getville&id=1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getville"
+								},
+								{
+									"key": "id",
+									"value": "1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rechercher des villes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=searchvilles&nom=Nantes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "searchvilles"
+								},
+								{
+									"key": "nom",
+									"value": "Nantes",
+									"description": "Recherche par nom (partiel)"
+								},
+								{
+									"key": "codePostal",
+									"value": "44000",
+									"description": "Recherche par code postal (exact)",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📏 Distance",
+			"item": [
+				{
+					"name": "Calculer une distance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=calculatedistance&lat1=48.8566&lng1=2.3522&lat2=47.2173&lng2=-1.5536&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "calculatedistance"
+								},
+								{
+									"key": "lat1",
+									"value": "48.8566",
+									"description": "Latitude point 1 (Paris)"
+								},
+								{
+									"key": "lng1",
+									"value": "2.3522",
+									"description": "Longitude point 1"
+								},
+								{
+									"key": "lat2",
+									"value": "47.2173",
+									"description": "Latitude point 2 (Nantes)"
+								},
+								{
+									"key": "lng2",
+									"value": "-1.5536",
+									"description": "Longitude point 2"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔧 Utils",
+			"item": [
+				{
+					"name": "Ping - Test connectivité",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=ping&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "ping"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+		},
+		{
+			"key": "apiKey",
+			"value": "your-api-key-here"
+		}
+	]
 }
