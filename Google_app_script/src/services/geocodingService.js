@@ -1,28 +1,33 @@
 /**
- * Service de géocodage - Résolution basée uniquement sur les polygones
+ * Service de géocodage - Résolution optimisée avec hiérarchie Ville > Secteur > Quartier
  */
 
 const GeocodingService = {
 
     /**
-     * Géocode une adresse avec cache
+     * Géocode une adresse composée avec cache
      */
-    geocodeAddress(address, country = null) {
-        const cacheKey = CacheManager.getGeocodeKey(address);
+    geocodeAddress(adresse, ville = null, codePostal = null, pays = null) {
+        // Construire l'adresse complète
+        const parts = [adresse, ville, codePostal, pays || CONFIG.GEO.PAYS_DEFAUT].filter(p => p);
+        const fullAddress = parts.join(', ');
+
+        const cacheKey = CacheManager.getGeocodeKey(fullAddress);
         const cached = CacheManager.get(cacheKey);
 
         if (cached) return cached;
 
         try {
             const geocoder = Maps.newGeocoder();
-            geocoder.setRegion(country || 'fr');
+            geocoder.setRegion(pays || 'fr');
             geocoder.setLanguage('fr');
 
-            const response = geocoder.geocode(address);
+            const response = geocoder.geocode(fullAddress);
 
             if (!response.results || response.results.length === 0) {
                 return {
                     isValid: false,
+                    exists: false,
                     error: 'Adresse introuvable'
                 };
             }
@@ -32,6 +37,7 @@ const GeocodingService = {
 
             const geocodeResult = {
                 isValid: true,
+                exists: true,
                 coordinates: {
                     latitude: location.lat,
                     longitude: location.lng
@@ -44,8 +50,8 @@ const GeocodingService = {
             return geocodeResult;
 
         } catch (e) {
-            Logger.error(`Erreur géocodage: ${e.message}`, { address });
-            return { isValid: false, error: e.message };
+            Logger.error(`Erreur géocodage: ${e.message}`, { adresse, ville, codePostal });
+            return { isValid: false, exists: false, error: e.message };
         }
     },
 
@@ -54,7 +60,7 @@ const GeocodingService = {
      */
     reverseGeocode(lat, lng) {
         if (!Utils.isValidCoordinates(lat, lng)) {
-            return { isValid: false, error: CONFIG.ERRORS.INVALID_COORDINATES };
+            return { isValid: false, exists: false, error: CONFIG.ERRORS.INVALID_COORDINATES };
         }
 
         const cacheKey = CacheManager.generateKey('reverse', lat, lng);
@@ -67,11 +73,12 @@ const GeocodingService = {
             const response = geocoder.reverseGeocode(lat, lng);
 
             if (!response.results || response.results.length === 0) {
-                return { isValid: false, error: 'Aucune adresse trouvée' };
+                return { isValid: false, exists: false, error: 'Aucune adresse trouvée' };
             }
 
             const result = {
                 isValid: true,
+                exists: true,
                 address: response.results[0].formatted_address,
                 coordinates: { latitude: lat, longitude: lng }
             };
@@ -81,153 +88,130 @@ const GeocodingService = {
 
         } catch (e) {
             Logger.error(`Erreur géocodage inversé: ${e.message}`, { lat, lng });
-            return { isValid: false, error: e.message };
+            return { isValid: false, exists: false, error: e.message };
         }
     },
 
     /**
-     * Trouve le quartier depuis une adresse
+     * Résolution optimisée avec hiérarchie Ville > Secteur > Quartier
+     * Secteur est déduit du quartier (pas de polygone pour secteur)
      */
-    findQuartierFromAddress(address) {
-        Logger.info(`Recherche quartier pour: ${address}`);
+    resolveLocation(lat, lng) {
+        Logger.info(`🎯 Résolution hiérarchique pour [${lat}, ${lng}]`);
 
-        const geocodeResult = this.geocodeAddress(address);
+        const hierarchy = DataService.loadHierarchy();
 
-        if (!geocodeResult.isValid) {
-            throw new Error('Impossible de géocoder cette adresse');
+        // ÉTAPE 1: Trouver la ville
+        Logger.info(`📍 Recherche ville parmi ${hierarchy.villes.length} villes`);
+        const ville = this._findInPolygons(lat, lng, hierarchy.villes);
+
+        if (!ville) {
+            throw new Error('Aucune ville trouvée pour ces coordonnées');
         }
 
-        const { latitude, longitude } = geocodeResult.coordinates;
+        Logger.success(`✅ Ville trouvée: ${ville.nom}`);
 
-        return this.resolveQuartierFromCoordinates(latitude, longitude);
-    },
+        // ÉTAPE 2: Filtrer quartiers de cette ville uniquement
+        const quartiersInVille = hierarchy.quartiers.filter(q => q.idVille === ville.id);
+        Logger.info(`📍 Recherche quartier parmi ${quartiersInVille.length} quartiers (ville ${ville.nom})`);
 
-    /**
-     * Résolution quartier depuis coordonnées - UNIQUEMENT PAR POLYGONES
-     */
-    resolveQuartierFromCoordinates(lat, lng) {
-        const quartiers = DataService.loadAll('QUARTIERS');
+        const quartier = this._findInPolygons(lat, lng, quartiersInVille);
 
-        if (quartiers.length === 0) {
-            throw new Error('Aucun quartier en base de données');
+        if (!quartier) {
+            throw new Error(`Aucun quartier trouvé dans ${ville.nom}`);
         }
 
-        Logger.info(`Recherche dans ${quartiers.length} quartiers`);
+        Logger.success(`✅ Quartier trouvé: ${quartier.nom}`);
 
-        // Chercher dans les polygones
-        const matchingPolygons = [];
+        // ÉTAPE 3: Le secteur est déduit du quartier (pas de test de polygone)
+        const secteur = hierarchy.secteurMap[quartier.idSecteur];
 
-        for (const q of quartiers) {
-            if (q.polygon && Utils.isPointInPolygon(lat, lng, q.polygon)) {
-                const area = Utils.polygonArea(q.polygon);
-                matchingPolygons.push({ quartier: q, area });
-                Logger.debug(`Point dans polygon: ${q.nom}`);
-            }
+        if (!secteur) {
+            Logger.warn(`⚠️ Secteur ${quartier.idSecteur} non trouvé pour quartier ${quartier.nom}`);
+            throw new Error(`Secteur associé au quartier introuvable`);
         }
 
-        // Un seul match
-        if (matchingPolygons.length === 1) {
-            Logger.info('Résolution: point-in-polygon (unique)');
-            return this.formatQuartierResult(
-                matchingPolygons[0].quartier,
-                'point-in-polygon'
-            );
-        }
+        Logger.success(`✅ Secteur déduit: ${secteur.nom}`);
 
-        // Plusieurs matchs: choisir le plus petit
-        if (matchingPolygons.length > 1) {
-            matchingPolygons.sort((a, b) => a.area - b.area);
-            const smallest = matchingPolygons[0];
-
-            Logger.info(`Résolution: point-in-polygon (plus petit parmi ${matchingPolygons.length})`);
-            return this.formatQuartierResult(
-                smallest.quartier,
-                'point-in-polygon-smallest',
-                `Point dans ${matchingPolygons.length} polygones`
-            );
-        }
-
-        // Aucun match
-        throw new Error('Aucun quartier trouvé pour ces coordonnées');
-    },
-
-    /**
-     * Résolution ville depuis coordonnées - UNIQUEMENT PAR POLYGONES
-     */
-    resolveVilleFromCoordinates(lat, lng) {
-        const villes = DataService.loadAll('VILLES');
-
-        if (villes.length === 0) {
-            throw new Error('Aucune ville en base de données');
-        }
-
-        Logger.info(`Recherche dans ${villes.length} villes`);
-
-        // Chercher dans les polygones
-        const matchingPolygons = [];
-
-        for (const v of villes) {
-            if (v.polygon && Utils.isPointInPolygon(lat, lng, v.polygon)) {
-                const area = Utils.polygonArea(v.polygon);
-                matchingPolygons.push({ ville: v, area });
-                Logger.debug(`Point dans polygon: ${v.nom}`);
-            }
-        }
-
-        // Un seul match
-        if (matchingPolygons.length === 1) {
-            Logger.info('Résolution: point-in-polygon (unique)');
-            return this.formatVilleResult(
-                matchingPolygons[0].ville,
-                'point-in-polygon'
-            );
-        }
-
-        // Plusieurs matchs: choisir le plus petit
-        if (matchingPolygons.length > 1) {
-            matchingPolygons.sort((a, b) => a.area - b.area);
-            const smallest = matchingPolygons[0];
-
-            Logger.info(`Résolution: point-in-polygon (plus petit parmi ${matchingPolygons.length})`);
-            return this.formatVilleResult(
-                smallest.ville,
-                'point-in-polygon-smallest',
-                `Point dans ${matchingPolygons.length} polygones`
-            );
-        }
-
-        // Aucun match
-        throw new Error('Aucune ville trouvée pour ces coordonnées');
-    },
-
-    /**
-     * Formate le résultat quartier
-     */
-    formatQuartierResult(quartier, method, details = null) {
         return {
             success: true,
-            quartierId: quartier.id,
-            quartierNom: quartier.nom,
-            idVille: quartier.idVille,
-            resolutionMethod: method,
-            resolutionDetails: details,
+            exists: true,
+            ville: {
+                id: ville.id,
+                nom: ville.nom,
+                codePostal: ville.codePostal,
+                departement: ville.departement
+            },
+            secteur: {
+                id: secteur.id,
+                nom: secteur.nom
+            },
+            quartier: {
+                id: quartier.id,
+                nom: quartier.nom
+            },
+            coordinates: {
+                latitude: lat,
+                longitude: lng
+            },
+            resolutionMethod: 'hierarchical-polygon-ville-quartier',
+            resolutionDetails: 'Secteur déduit du quartier (logique uniquement)',
             timestamp: new Date().toISOString()
         };
     },
 
     /**
-     * Formate le résultat ville
+     * Trouve l'entité la plus petite contenant le point
      */
-    formatVilleResult(ville, method, details = null) {
+    _findInPolygons(lat, lng, entities) {
+        const matches = [];
+
+        for (const entity of entities) {
+            if (entity.polygon && Utils.isPointInPolygon(lat, lng, entity.polygon)) {
+                const area = Utils.polygonArea(entity.polygon);
+                matches.push({ entity, area });
+            }
+        }
+
+        if (matches.length === 0) return null;
+        if (matches.length === 1) return matches[0].entity;
+
+        // Plusieurs matchs: retourner le plus petit
+        matches.sort((a, b) => a.area - b.area);
+        Logger.debug(`Multiple matches found, selecting smallest (${matches.length} candidates)`);
+        return matches[0].entity;
+    },
+
+    /**
+     * Valide si un quartier existe
+     */
+    validateQuartier(quartierId) {
+        const quartier = DataService.findById('QUARTIERS', quartierId);
         return {
-            success: true,
-            villeId: ville.id,
-            villeNom: ville.nom,
-            codePostal: ville.codePostal,
-            departement: ville.departement,
-            resolutionMethod: method,
-            resolutionDetails: details,
-            timestamp: new Date().toISOString()
+            exists: !!quartier,
+            quartier: quartier ? DataService.stripPolygons(quartier) : null
+        };
+    },
+
+    /**
+     * Valide si un secteur existe
+     */
+    validateSecteur(secteurId) {
+        const secteur = DataService.findById('SECTEURS', secteurId);
+        return {
+            exists: !!secteur,
+            secteur: secteur ? DataService.stripPolygons(secteur) : null
+        };
+    },
+
+    /**
+     * Valide si une ville existe
+     */
+    validateVille(villeId) {
+        const ville = DataService.findById('VILLES', villeId);
+        return {
+            exists: !!ville,
+            ville: ville ? DataService.stripPolygons(ville) : null
         };
     }
 };

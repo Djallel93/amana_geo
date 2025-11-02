@@ -1,6 +1,6 @@
 /**
  * GEO API - Configuration centralisée
- * Version: 4.0 (Read-Only API with Polygon-based resolution)
+ * Version: 5.0 (Read-Only API with Secteur dimension)
  */
 
 const CONFIG = (() => {
@@ -10,6 +10,7 @@ const CONFIG = (() => {
     // Noms des feuilles
     SHEETS: {
       VILLES: 'villes',
+      SECTEURS: 'secteurs',
       QUARTIERS: 'quartiers'
     },
 
@@ -22,11 +23,16 @@ const CONFIG = (() => {
         CODE_POSTAL: 3,
         DEPARTEMENT: 4
       },
+      SECTEURS: {
+        ID: 0,
+        NOM: 1,
+        ID_VILLE: 2
+      },
       QUARTIERS: {
         ID: 0,
         NOM: 1,
         POLYGON: 2,
-        ID_VILLE: 3
+        ID_SECTEUR: 3
       }
     },
 
@@ -34,7 +40,7 @@ const CONFIG = (() => {
     GEO: {
       RAYON_TERRE_KM: 6371,
       PAYS_DEFAUT: 'France',
-      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/4.0 (bigdjallel@gmail.com)'
+      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/5.0 (bigdjallel@gmail.com)'
     },
 
     // Configuration du cache
@@ -57,6 +63,7 @@ const CONFIG = (() => {
       MISSING_PARAMETERS: 'PARAMETRES_MANQUANTS',
       UNAUTHORIZED: 'NON_AUTORISE',
       QUARTIER_NOT_FOUND: 'QUARTIER_INTROUVABLE',
+      SECTEUR_NOT_FOUND: 'SECTEUR_INTROUVABLE',
       VILLE_NOT_FOUND: 'VILLE_INTROUVABLE'
     }
   };

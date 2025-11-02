@@ -1,5 +1,5 @@
 /**
- * Gestionnaire API REST - Read-Only avec authentification API Key
+ * Gestionnaire API REST - Version 5.0 avec dimension Secteur
  */
 
 /**
@@ -27,7 +27,6 @@ function checkAuthentication(headers) {
  */
 function doGet(e) {
   try {
-    // Vérifier l'authentification
     const headers = e.parameter;
     if (!checkAuthentication(headers)) {
       return Utils.createErrorResponse(
@@ -59,7 +58,6 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
-    // Vérifier l'authentification dans les headers
     const headers = e.parameter;
     if (!checkAuthentication(headers)) {
       return Utils.createErrorResponse(
@@ -101,30 +99,38 @@ function doPost(e) {
 }
 
 /**
- * Routeur API - READ ONLY
+ * Routeur API
  */
 const APIRouter = {
 
-  /**
-   * Routes GET
-   */
   routeGet(action, params) {
     const routes = {
       // Géocodage
       'geocode': () => APIHandlers.handleGeocode(params),
       'reversegeocode': () => APIHandlers.handleReverseGeocode(params),
 
+      // Résolution complète
+      'resolvelocation': () => APIHandlers.handleResolveLocation(params),
+
+      // Validation
+      'validatequartier': () => APIHandlers.handleValidateQuartier(params),
+      'validatesecteur': () => APIHandlers.handleValidateSecteur(params),
+      'validateville': () => APIHandlers.handleValidateVille(params),
+
       // Quartier
-      'findquartier': () => APIHandlers.handleFindQuartier(params),
       'getquartiers': () => APIHandlers.handleGetQuartiers(params),
       'getquartier': () => APIHandlers.handleGetQuartier(params),
-      'quartiersbyville': () => APIHandlers.handleQuartiersByVille(params),
+      'quartiersbysecteur': () => APIHandlers.handleQuartiersBySecteur(params),
+
+      // Secteur (nouveau)
+      'getsecteurs': () => APIHandlers.handleGetSecteurs(params),
+      'getsecteur': () => APIHandlers.handleGetSecteur(params),
+      'secteursbyville': () => APIHandlers.handleSecteursByVille(params),
 
       // Ville
       'getvilles': () => APIHandlers.handleGetVilles(params),
       'getville': () => APIHandlers.handleGetVille(params),
       'searchvilles': () => APIHandlers.handleSearchVilles(params),
-      'findville': () => APIHandlers.handleFindVille(params),
 
       // Distance
       'calculatedistance': () => APIHandlers.handleCalculateDistance(params),
@@ -132,8 +138,8 @@ const APIRouter = {
       // Ping
       'ping': () => Utils.createJsonResponse({
         status: 'ok',
-        message: 'GEO API opérationnelle (Read-Only)',
-        version: '4.0',
+        message: 'GEO API opérationnelle v5.0 (Ville > Secteur > Quartier)',
+        version: '5.0',
         timestamp: new Date().toISOString()
       })
     };
@@ -150,12 +156,7 @@ const APIRouter = {
     return handler();
   },
 
-  /**
-   * Routes POST - Limitées
-   */
   routePost(action, params) {
-    // Pour l'instant, toutes les actions sont en GET
-    // POST réservé pour futures fonctionnalités
     return Utils.createErrorResponse(
       'METHOD_NOT_ALLOWED',
       'API en lecture seule. Utilisez GET.',
@@ -165,21 +166,27 @@ const APIRouter = {
 };
 
 /**
- * Handlers API - READ ONLY
+ * Handlers API
  */
 const APIHandlers = {
 
   // ========== GÉOCODAGE ==========
 
   handleGeocode(params) {
-    if (!params.address) {
+    if (!params.adresse) {
       return Utils.createErrorResponse(
         CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "address" manquant'
+        'Paramètre "adresse" manquant'
       );
     }
 
-    const result = GeocodingService.geocodeAddress(params.address, params.country);
+    const result = GeocodingService.geocodeAddress(
+      params.adresse,
+      params.ville,
+      params.codePostal || params.code_postal,
+      params.pays
+    );
+
     return Utils.createJsonResponse(result);
   },
 
@@ -198,9 +205,9 @@ const APIHandlers = {
     return Utils.createJsonResponse(result);
   },
 
-  // ========== QUARTIER ==========
+  // ========== RÉSOLUTION ==========
 
-  handleFindQuartier(params) {
+  handleResolveLocation(params) {
     const lat = parseFloat(params.lat || params.latitude);
     const lng = parseFloat(params.lng || params.longitude);
 
@@ -212,7 +219,7 @@ const APIHandlers = {
     }
 
     try {
-      const result = GeocodingService.resolveQuartierFromCoordinates(lat, lng);
+      const result = GeocodingService.resolveLocation(lat, lng);
       return Utils.createJsonResponse(result);
     } catch (error) {
       return Utils.createErrorResponse(
@@ -223,14 +230,56 @@ const APIHandlers = {
     }
   },
 
+  // ========== VALIDATION ==========
+
+  handleValidateQuartier(params) {
+    if (!params.id) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "id" requis'
+      );
+    }
+
+    const result = GeocodingService.validateQuartier(params.id);
+    return Utils.createJsonResponse(result);
+  },
+
+  handleValidateSecteur(params) {
+    if (!params.id) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "id" requis'
+      );
+    }
+
+    const result = GeocodingService.validateSecteur(params.id);
+    return Utils.createJsonResponse(result);
+  },
+
+  handleValidateVille(params) {
+    if (!params.id) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "id" requis'
+      );
+    }
+
+    const result = GeocodingService.validateVille(params.id);
+    return Utils.createJsonResponse(result);
+  },
+
+  // ========== QUARTIER ==========
+
   handleGetQuartiers(params) {
-    const idVille = params.idVille || params.id_ville;
+    const idSecteur = params.idSecteur || params.id_secteur;
 
     let quartiers = DataService.loadAll('QUARTIERS');
 
-    if (idVille) {
-      quartiers = quartiers.filter(q => q.idVille == idVille);
+    if (idSecteur) {
+      quartiers = quartiers.filter(q => q.idSecteur == idSecteur);
     }
+
+    quartiers = DataService.stripPolygons(quartiers);
 
     return Utils.createJsonResponse({
       count: quartiers.length,
@@ -256,10 +305,72 @@ const APIHandlers = {
       );
     }
 
-    return Utils.createJsonResponse(quartier);
+    return Utils.createJsonResponse(DataService.stripPolygons(quartier));
   },
 
-  handleQuartiersByVille(params) {
+  handleQuartiersBySecteur(params) {
+    const idSecteur = params.idSecteur || params.id_secteur;
+
+    if (!idSecteur) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "idSecteur" requis'
+      );
+    }
+
+    let quartiers = DataService.loadAll('QUARTIERS')
+      .filter(q => q.idSecteur == idSecteur);
+
+    quartiers = DataService.stripPolygons(quartiers);
+
+    return Utils.createJsonResponse({
+      idSecteur: idSecteur,
+      count: quartiers.length,
+      quartiers: quartiers
+    });
+  },
+
+  // ========== SECTEUR (NOUVEAU) ==========
+
+  handleGetSecteurs(params) {
+    const idVille = params.idVille || params.id_ville;
+
+    let secteurs = DataService.loadAll('SECTEURS');
+
+    if (idVille) {
+      secteurs = secteurs.filter(s => s.idVille == idVille);
+    }
+
+    secteurs = DataService.stripPolygons(secteurs);
+
+    return Utils.createJsonResponse({
+      count: secteurs.length,
+      secteurs: secteurs
+    });
+  },
+
+  handleGetSecteur(params) {
+    if (!params.id) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "id" requis'
+      );
+    }
+
+    const secteur = DataService.findById('SECTEURS', params.id);
+
+    if (!secteur) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.SECTEUR_NOT_FOUND,
+        `Secteur ${params.id} introuvable`,
+        404
+      );
+    }
+
+    return Utils.createJsonResponse(DataService.stripPolygons(secteur));
+  },
+
+  handleSecteursByVille(params) {
     const idVille = params.idVille || params.id_ville;
 
     if (!idVille) {
@@ -269,20 +380,23 @@ const APIHandlers = {
       );
     }
 
-    const quartiers = DataService.loadAll('QUARTIERS')
-      .filter(q => q.idVille == idVille);
+    let secteurs = DataService.loadAll('SECTEURS')
+      .filter(s => s.idVille == idVille);
+
+    secteurs = DataService.stripPolygons(secteurs);
 
     return Utils.createJsonResponse({
       idVille: idVille,
-      count: quartiers.length,
-      quartiers: quartiers
+      count: secteurs.length,
+      secteurs: secteurs
     });
   },
 
   // ========== VILLE ==========
 
   handleGetVilles() {
-    const villes = DataService.loadAll('VILLES');
+    let villes = DataService.loadAll('VILLES');
+    villes = DataService.stripPolygons(villes);
 
     return Utils.createJsonResponse({
       count: villes.length,
@@ -308,7 +422,7 @@ const APIHandlers = {
       );
     }
 
-    return Utils.createJsonResponse(ville);
+    return Utils.createJsonResponse(DataService.stripPolygons(ville));
   },
 
   handleSearchVilles(params) {
@@ -331,33 +445,12 @@ const APIHandlers = {
       villes = villes.filter(v => v.nom.toLowerCase().includes(searchTerm));
     }
 
+    villes = DataService.stripPolygons(villes);
+
     return Utils.createJsonResponse({
       count: villes.length,
       villes: villes
     });
-  },
-
-  handleFindVille(params) {
-    const lat = parseFloat(params.lat || params.latitude);
-    const lng = parseFloat(params.lng || params.longitude);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètres "lat" et "lng" requis'
-      );
-    }
-
-    try {
-      const result = GeocodingService.resolveVilleFromCoordinates(lat, lng);
-      return Utils.createJsonResponse(result);
-    } catch (error) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.NO_MATCH,
-        error.message,
-        404
-      );
-    }
   },
 
   // ========== DISTANCE ==========
