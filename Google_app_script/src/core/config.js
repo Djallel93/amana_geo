@@ -1,6 +1,6 @@
 /**
  * GEO API - Configuration centralisée
- * Version: 5.0 (Read-Only API with Secteur dimension)
+ * Version: 5.0 (Read-Only API with Secteur dimension - No Cache)
  */
 
 const CONFIG = (() => {
@@ -41,12 +41,6 @@ const CONFIG = (() => {
       RAYON_TERRE_KM: 6371,
       PAYS_DEFAUT: 'France',
       USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/5.0 (bigdjallel@gmail.com)'
-    },
-
-    // Configuration du cache
-    CACHE: {
-      DUREE_DEFAUT: parseInt(props.getProperty('CACHE_DURATION')) || 3600,
-      TAILLE_MAX_ENTREE: 100000
     },
 
     // Authentification

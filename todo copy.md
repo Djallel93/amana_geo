@@ -1,14 +1,50 @@
 You are an expert Google Apps Script developer.
-I have an Google Apps Script project still in developpement (nothing in production so feel free to redesign), and I want you to modify this behaviour.
+I have an Google Apps Script project still in developpement , and I want you to help me correct this bug.
 
-ville, secteur and quartier sheet don't have CENTRE_LAT and CENTRE_LNG. quartier and ville keep polygon. when assessing if coordinates in quartier/ville check if adress/coordiantes in polygon.
-delete all endpoints that creates items, this api only reads data for now
-delete all unnecessay centroids calculation
-delete any unused function keep only live code
+in traduction sheet i have
+id_mot_source	mot_source	id_mot_cible	mot_cible
+41	أَنَا	53	je
+42	نَحْنُ	54	nous
+43	أَنْتَ	55	tu (masculin)
+44	أَنْتِ	56	tu (féminin)
+45	أَنْتُمَا	57	vous (deux personnes)
+46	أَنْتُمْ	58	vous (pluriel masculin)
+47	أَنْتُنَّ	59	vous (pluriel féminin)
+48	هُوَ	60	il
+49	هِيَ	61	elle
+50	هُمَا	62	ils (deux personnes)
+51	هُمْ	63	ils
+52	هُنَّ	64	elles
 
-Add an apiKey header. users have to provide the key as an authentication
+when generating validation responses for the question
 
-Please show the full modified code and explain what was changed and why.
+✍️ Traduisez en Arabe: "tu"
+Veuillez saisir la réponse
+
+💡 Contexte: masculin
+
+i got
+أنت
+أَنْتَ
+أَنْتِ
+
+
+same thing happend on
+ 
+✍️ Traduisez en Arabe: "vous"
+Veuillez saisir la réponse
+
+💡 Contexte: deux personnes
+
+i got 
+أنتما
+أَنْتُمَا
+أنتم
+أَنْتُمْ
+أنتن
+أَنْتُنَّ
+
+I thought correspondance was on the id and this could not happen ? so what's going on ?
 
 IF YOU NEED ANY EXTERNAL PARAMETER USE SCRIPT PROPERTY
 

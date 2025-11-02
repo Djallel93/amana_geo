@@ -1,424 +1,262 @@
 /**
- * Fonctions de test pour GEO API v5.0
+ * Inspecte le contenu brut du Google Sheet "villes"
  */
-
-// ========================================
-// TESTS DE CHARGEMENT DES DONNÉES
-// ========================================
-
-function testLoadVilles() {
-    console.log('\n========== TEST: Chargement Villes ==========');
-
-    try {
-        const villes = DataService.loadAll('VILLES');
-
-        console.log(`✅ ${villes.length} villes chargées`);
-
-        if (villes.length > 0) {
-            console.log('\n📋 Première ville:');
-            console.log(JSON.stringify(villes[0], null, 2));
-
-            // Vérifier la structure
-            const v = villes[0];
-            console.log('\n🔍 Validation structure:');
-            console.log(`  - ID: ${v.id ? '✅' : '❌'}`);
-            console.log(`  - Nom: ${v.nom ? '✅' : '❌'}`);
-            console.log(`  - Polygon: ${v.polygon ? '✅' : '❌'}`);
-            console.log(`  - Code Postal: ${v.codePostal ? '✅' : '❌'}`);
-            console.log(`  - Département: ${v.departement ? '✅' : '❌'}`);
-        }
-
-        return { success: true, count: villes.length };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-function testLoadSecteurs() {
-    console.log('\n========== TEST: Chargement Secteurs ==========');
-
-    try {
-        const secteurs = DataService.loadAll('SECTEURS');
-
-        console.log(`✅ ${secteurs.length} secteurs chargés`);
-
-        if (secteurs.length > 0) {
-            console.log('\n📋 Premier secteur:');
-            console.log(JSON.stringify(secteurs[0], null, 2));
-
-            // Vérifier la structure
-            const s = secteurs[0];
-            console.log('\n🔍 Validation structure:');
-            console.log(`  - ID: ${s.id ? '✅' : '❌'}`);
-            console.log(`  - Nom: ${s.nom ? '✅' : '❌'}`);
-            console.log(`  - Polygon: ${s.polygon === undefined ? '✅ pas de polygon (normal)' : '⚠️ polygon présent (devrait être absent)'}`);
-            console.log(`  - ID Ville: ${s.idVille ? '✅' : '❌'}`);
-
-            // Vérifier que la ville existe
-            const ville = DataService.findById('VILLES', s.idVille);
-            console.log(`  - Ville existe: ${ville ? '✅ ' + ville.nom : '❌'}`);
-        }
-
-        return { success: true, count: secteurs.length };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-function testLoadQuartiers() {
-    console.log('\n========== TEST: Chargement Quartiers ==========');
-
-    try {
-        const quartiers = DataService.loadAll('QUARTIERS');
-
-        console.log(`✅ ${quartiers.length} quartiers chargés`);
-
-        if (quartiers.length > 0) {
-            console.log('\n📋 Premier quartier:');
-            console.log(JSON.stringify(quartiers[0], null, 2));
-
-            // Vérifier la structure
-            const q = quartiers[0];
-            console.log('\n🔍 Validation structure:');
-            console.log(`  - ID: ${q.id ? '✅' : '❌'}`);
-            console.log(`  - Nom: ${q.nom ? '✅' : '❌'}`);
-            console.log(`  - Polygon: ${q.polygon ? '✅' : '❌'}`);
-            console.log(`  - ID Secteur: ${q.idSecteur ? '✅' : '❌'}`);
-
-            // Vérifier que le secteur existe
-            const secteur = DataService.findById('SECTEURS', q.idSecteur);
-            console.log(`  - Secteur existe: ${secteur ? '✅ ' + secteur.nom : '❌'}`);
-
-            if (secteur) {
-                const ville = DataService.findById('VILLES', secteur.idVille);
-                console.log(`  - Ville existe: ${ville ? '✅ ' + ville.nom : '❌'}`);
-            }
-        }
-
-        return { success: true, count: quartiers.length };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-// ========================================
-// TESTS DE HIÉRARCHIE
-// ========================================
-
-function testHierarchy() {
-    console.log('\n========== TEST: Hiérarchie Complète ==========');
-
-    try {
-        const hierarchy = DataService.loadHierarchy();
-
-        console.log(`✅ Hiérarchie chargée avec succès`);
-        console.log(`  - ${hierarchy.villes.length} villes`);
-        console.log(`  - ${hierarchy.secteurs.length} secteurs`);
-        console.log(`  - ${hierarchy.quartiers.length} quartiers`);
-
-        // Vérifier les enrichissements
-        if (hierarchy.quartiers.length > 0) {
-            const q = hierarchy.quartiers[0];
-            console.log('\n📋 Premier quartier enrichi:');
-            console.log(`  - ID: ${q.id}`);
-            console.log(`  - Nom: ${q.nom}`);
-            console.log(`  - Secteur: ${q.secteurNom || '❌ manquant'}`);
-            console.log(`  - Ville: ${q.villeNom || '❌ manquant'}`);
-            console.log(`  - Code Postal: ${q.codePostal || '❌ manquant'}`);
-        }
-
-        // Statistiques par ville
-        console.log('\n📊 Distribution par ville:');
-        const villeStats = {};
-
-        hierarchy.secteurs.forEach(s => {
-            if (!villeStats[s.idVille]) {
-                villeStats[s.idVille] = { nom: s.villeNom, secteurs: 0, quartiers: 0 };
-            }
-            villeStats[s.idVille].secteurs++;
-        });
-
-        hierarchy.quartiers.forEach(q => {
-            if (villeStats[q.idVille]) {
-                villeStats[q.idVille].quartiers++;
-            }
-        });
-
-        Object.entries(villeStats).forEach(([id, stats]) => {
-            console.log(`  ${stats.nom}: ${stats.secteurs} secteurs, ${stats.quartiers} quartiers`);
-        });
-
-        return { success: true, hierarchy };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-// ========================================
-// TESTS DE RÉSOLUTION
-// ========================================
-
-function testResolveLocation(lat, lng) {
-    console.log(`\n========== TEST: Résolution Location [${lat}, ${lng}] ==========`);
-
-    try {
-        const result = GeocodingService.resolveLocation(lat, lng);
-
-        console.log(`✅ Résolution réussie`);
-        console.log(`\n📍 Résultat:`);
-        console.log(`  Ville: ${result.ville.nom} (${result.ville.codePostal})`);
-        console.log(`  Secteur: ${result.secteur.nom}`);
-        console.log(`  Quartier: ${result.quartier.nom}`);
-        console.log(`  Méthode: ${result.resolutionMethod}`);
-
-        return { success: true, result };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-// ========================================
-// TESTS DE GÉOCODAGE
-// ========================================
-
-function testGeocode(adresse, ville, codePostal) {
-    console.log(`\n========== TEST: Géocodage ==========`);
-    console.log(`Adresse: ${adresse}`);
-    console.log(`Ville: ${ville || 'non spécifiée'}`);
-    console.log(`Code Postal: ${codePostal || 'non spécifié'}`);
-
-    try {
-        const result = GeocodingService.geocodeAddress(adresse, ville, codePostal);
-
-        if (result.isValid) {
-            console.log(`✅ Géocodage réussi`);
-            console.log(`  Exists: ${result.exists}`);
-            console.log(`  Coordonnées: ${result.coordinates.latitude}, ${result.coordinates.longitude}`);
-            console.log(`  Adresse formatée: ${result.formattedAddress}`);
-        } else {
-            console.log(`❌ Géocodage échoué: ${result.error}`);
-        }
-
-        return { success: result.isValid, result };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-// ========================================
-// TESTS DE VALIDATION
-// ========================================
-
-function testValidations() {
-    console.log('\n========== TEST: Validations ==========');
-
-    try {
-        // Test avec IDs existants (vous devrez ajuster selon vos données)
-        console.log('\n🔍 Test validation ville:');
-        const villes = DataService.loadAll('VILLES');
-        if (villes.length > 0) {
-            const villeResult = GeocodingService.validateVille(villes[0].id);
-            console.log(`  ID ${villes[0].id}: ${villeResult.exists ? '✅ existe' : '❌ n\'existe pas'}`);
-        }
-
-        console.log('\n🔍 Test validation secteur:');
-        const secteurs = DataService.loadAll('SECTEURS');
-        if (secteurs.length > 0) {
-            const secteurResult = GeocodingService.validateSecteur(secteurs[0].id);
-            console.log(`  ID ${secteurs[0].id}: ${secteurResult.exists ? '✅ existe' : '❌ n\'existe pas'}`);
-        }
-
-        console.log('\n🔍 Test validation quartier:');
-        const quartiers = DataService.loadAll('QUARTIERS');
-        if (quartiers.length > 0) {
-            const quartierResult = GeocodingService.validateQuartier(quartiers[0].id);
-            console.log(`  ID ${quartiers[0].id}: ${quartierResult.exists ? '✅ existe' : '❌ n\'existe pas'}`);
-        }
-
-        // Test avec ID inexistant
-        console.log('\n🔍 Test validation ID inexistant:');
-        const fakeResult = GeocodingService.validateVille('ID_INEXISTANT_999');
-        console.log(`  ID inexistant: ${fakeResult.exists ? '❌ BUG: devrait être false' : '✅ existe = false'}`);
-
-        return { success: true };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-// ========================================
-// TESTS DE POLYGONES
-// ========================================
-
-function testPolygonRemoval() {
-    console.log('\n========== TEST: Suppression Polygones ==========');
-
-    try {
-        const villes = DataService.loadAll('VILLES');
-        const villesNoPolygon = DataService.stripPolygons(villes);
-
-        console.log(`✅ ${villes.length} villes traitées`);
-
-        if (villesNoPolygon.length > 0) {
-            const hasPolygon = villesNoPolygon.some(v => v.polygon !== undefined);
-            console.log(`  Polygones supprimés: ${!hasPolygon ? '✅' : '❌ ERREUR'}`);
-
-            console.log('\n📋 Exemple ville sans polygon:');
-            console.log(JSON.stringify(villesNoPolygon[0], null, 2));
-        }
-
-        return { success: true };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
-    }
-}
-
-function debugPolygonData() {
-    console.log('\n========== DEBUG: Contenu brut des polygones ==========');
+function debugSheetRawContent() {
+    console.log('\n╔══════════════════════════════════════════════════════════╗');
+    console.log('║     INSPECTION BRUTE DU GOOGLE SHEET "villes"           ║');
+    console.log('╚══════════════════════════════════════════════════════════╝');
 
     try {
         const ss = SpreadsheetApp.getActiveSpreadsheet();
+        console.log(`\n✅ Spreadsheet ouvert: "${ss.getName()}"`);
 
-        // Villes
-        console.log('\n🏙️ VILLES:');
-        const villeSheet = ss.getSheetByName('villes');
-        const villeData = villeSheet.getDataRange().getValues();
-
-        for (let i = 1; i <= Math.min(3, villeData.length - 1); i++) {
-            const row = villeData[i];
-            console.log(`\n  Ville ${i}: ${row[1]}`);
-            console.log(`  Polygon (colonne C):"`);
-            console.log(`    Type: ${typeof row[2]}`);
-            console.log(`    Longueur: ${row[2] ? row[2].length : 0}`);
-            console.log(`    Premiers 100 chars: ${row[2] ? row[2].substring(0, 100) : 'VIDE'}`);
-
-            // Tester le parsing
-            const parsed = Utils.parseGeoJSONPolygon(row[2]);
-            console.log(`    Parsing: ${parsed ? '✅ ' + parsed.length + ' points' : '❌ échec'}`);
+        const sheet = ss.getSheetByName('villes');
+        
+        if (!sheet) {
+            console.log('\n❌ ERREUR: Feuille "villes" introuvable!');
+            console.log('\n📋 Feuilles disponibles:');
+            ss.getSheets().forEach(s => console.log(`   - ${s.getName()}`));
+            return;
         }
 
-        // Quartiers
-        console.log('\n\n🏘️ QUARTIERS:');
-        const quartierSheet = ss.getSheetByName('quartiers');
-        const quartierData = quartierSheet.getDataRange().getValues();
+        console.log(`\n✅ Feuille "villes" trouvée`);
 
-        for (let i = 1; i <= Math.min(3, quartierData.length - 1); i++) {
-            const row = quartierData[i];
-            console.log(`\n  Quartier ${i}: ${row[1]}`);
-            console.log(`  Polygon (colonne C):`);
-            console.log(`    Type: ${typeof row[2]}`);
-            console.log(`    Longueur: ${row[2] ? row[2].length : 0}`);
-            console.log(`    Premiers 100 chars: ${row[2] ? row[2].substring(0, 100) : 'VIDE'}`);
+        const data = sheet.getDataRange().getValues();
+        console.log(`\n📊 Dimensions:`);
+        console.log(`   Lignes: ${data.length}`);
+        console.log(`   Colonnes: ${data[0]?.length || 0}`);
 
-            // Tester le parsing
-            const parsed = Utils.parseGeoJSONPolygon(row[2]);
-            console.log(`    Parsing: ${parsed ? '✅ ' + parsed.length + ' points' : '❌ échec'}`);
+        // Afficher l'en-tête
+        console.log('\n📋 EN-TÊTE (première ligne):');
+        if (data.length > 0) {
+            data[0].forEach((header, index) => {
+                const letter = String.fromCharCode(65 + index); // A, B, C, etc.
+                console.log(`   Colonne ${letter} (index ${index}): "${header}"`);
+            });
         }
 
-        return { success: true };
-    } catch (e) {
-        console.log(`❌ ERREUR: ${e.message}`);
-        console.log(e.stack);
-        return { success: false, error: e.message };
+        // Configuration attendue
+        console.log('\n⚙️  CONFIGURATION (config.js):');
+        console.log(`   VILLES.ID: ${CONFIG.COLUMNS.VILLES.ID} (attendu: colonne A)`);
+        console.log(`   VILLES.NOM: ${CONFIG.COLUMNS.VILLES.NOM} (attendu: colonne B)`);
+        console.log(`   VILLES.POLYGON: ${CONFIG.COLUMNS.VILLES.POLYGON} (attendu: colonne C)`);
+        console.log(`   VILLES.CODE_POSTAL: ${CONFIG.COLUMNS.VILLES.CODE_POSTAL} (attendu: colonne D)`);
+        console.log(`   VILLES.DEPARTEMENT: ${CONFIG.COLUMNS.VILLES.DEPARTEMENT} (attendu: colonne E)`);
+
+        // Vérifier la correspondance
+        console.log('\n🔍 VÉRIFICATION CORRESPONDANCE:');
+        const expectedHeaders = ['id', 'nom', 'polygon', 'codePostal', 'departement'];
+        let mismatch = false;
+
+        expectedHeaders.forEach((expected, index) => {
+            const actual = data[0]?.[index]?.toString().toLowerCase().trim();
+            const match = actual === expected.toLowerCase();
+            const icon = match ? '✅' : '❌';
+            console.log(`   ${icon} Colonne ${index}: attendu "${expected}", trouvé "${data[0]?.[index]}"`);
+            if (!match) mismatch = true;
+        });
+
+        if (mismatch) {
+            console.log('\n⚠️  ATTENTION: Les en-têtes ne correspondent pas à la configuration!');
+        }
+
+        // Afficher les 3 premières lignes de données
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('CONTENU DES 3 PREMIÈRES LIGNES:');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        for (let i = 1; i <= Math.min(3, data.length - 1); i++) {
+            const row = data[i];
+            console.log(`\n🏙️  LIGNE ${i}:`);
+
+            // Colonne A: ID
+            console.log(`   Colonne A (ID):`);
+            console.log(`      Valeur: "${row[0]}"`);
+            console.log(`      Type: ${typeof row[0]}`);
+            console.log(`      Vide: ${!row[0] ? '❌ OUI' : '✅ NON'}`);
+
+            // Colonne B: Nom
+            console.log(`   Colonne B (Nom):`);
+            console.log(`      Valeur: "${row[1]}"`);
+            console.log(`      Type: ${typeof row[1]}`);
+            console.log(`      Vide: ${!row[1] ? '❌ OUI' : '✅ NON'}`);
+
+            // Colonne C: Polygon (LE PLUS IMPORTANT)
+            console.log(`   Colonne C (Polygon):`);
+            console.log(`      Type: ${typeof row[2]}`);
+            console.log(`      Vide: ${!row[2] || row[2].toString().trim() === '' ? '❌ OUI' : '✅ NON'}`);
+            console.log(`      Longueur: ${row[2] ? row[2].toString().length : 0} caractères`);
+            
+            if (row[2] && row[2].toString().length > 0) {
+                const polygonStr = row[2].toString();
+                console.log(`      Premiers 100 caractères: "${polygonStr.substring(0, 100)}"`);
+                
+                // Tenter de parser
+                try {
+                    const parsed = JSON.parse(polygonStr);
+                    console.log(`      ✅ JSON valide`);
+                    console.log(`      Type GeoJSON: ${parsed.type}`);
+                    console.log(`      A des coordonnées: ${parsed.coordinates ? '✅ OUI' : '❌ NON'}`);
+                    
+                    if (parsed.coordinates) {
+                        const coordCount = parsed.type === 'Polygon' 
+                            ? parsed.coordinates[0].length 
+                            : parsed.coordinates[0][0].length;
+                        console.log(`      Nombre de points: ${coordCount}`);
+                    }
+                } catch (e) {
+                    console.log(`      ❌ JSON invalide: ${e.message}`);
+                }
+            } else {
+                console.log(`      ❌❌❌ COLONNE VIDE - C'EST LE PROBLÈME! ❌❌❌`);
+            }
+
+            // Colonnes D et E
+            console.log(`   Colonne D (Code Postal): "${row[3]}"`);
+            console.log(`   Colonne E (Département): "${row[4]}"`);
+        }
+
+        // Statistiques globales
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('STATISTIQUES GLOBALES:');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        let totalRows = data.length - 1; // Sans header
+        let rowsWithPolygon = 0;
+        let rowsEmptyPolygon = 0;
+
+        for (let i = 1; i < data.length; i++) {
+            const polygonCell = data[i][2];
+            if (polygonCell && polygonCell.toString().trim().length > 0) {
+                rowsWithPolygon++;
+            } else {
+                rowsEmptyPolygon++;
+            }
+        }
+
+        console.log(`\n   Total lignes (sans header): ${totalRows}`);
+        console.log(`   Avec polygon: ${rowsWithPolygon} (${(rowsWithPolygon/totalRows*100).toFixed(1)}%)`);
+        console.log(`   Sans polygon: ${rowsEmptyPolygon} (${(rowsEmptyPolygon/totalRows*100).toFixed(1)}%)`);
+
+        if (rowsEmptyPolygon === totalRows) {
+            console.log('\n❌❌❌ PROBLÈME CRITIQUE ❌❌❌');
+            console.log('AUCUNE ligne n\'a de polygon dans la colonne C!');
+            console.log('\n💡 SOLUTIONS:');
+            console.log('   1. Vérifier que les polygons sont bien dans la colonne C');
+            console.log('   2. Si les polygons sont dans une autre colonne, ajuster CONFIG.COLUMNS.VILLES.POLYGON');
+            console.log('   3. Vérifier que les cellules contiennent bien du GeoJSON valide');
+            console.log('   4. Importer les données GeoJSON si elles sont manquantes');
+        } else if (rowsEmptyPolygon > 0) {
+            console.log(`\n⚠️  ${rowsEmptyPolygon} lignes n'ont pas de polygon`);
+            console.log('Lister les villes sans polygon...');
+            
+            console.log('\n🏙️  Villes SANS polygon:');
+            for (let i = 1; i < data.length; i++) {
+                const polygonCell = data[i][2];
+                if (!polygonCell || polygonCell.toString().trim().length === 0) {
+                    console.log(`   - ${data[i][1]} (ID: ${data[i][0]})`);
+                }
+            }
+        } else {
+            console.log('\n✅ Toutes les villes ont un polygon!');
+        }
+
+    } catch (error) {
+        console.log('\n❌ ERREUR FATALE:');
+        console.log(`   Message: ${error.message}`);
+        console.log(`   Stack: ${error.stack}`);
     }
 }
 
-// ========================================
-// SUITE DE TESTS COMPLÈTE
-// ========================================
+/**
+ * Test si Utils.parseGeoJSONPolygon fonctionne
+ */
+function testParseGeoJSON() {
+    console.log('\n╔══════════════════════════════════════════════════════════╗');
+    console.log('║     TEST: Utils.parseGeoJSONPolygon                      ║');
+    console.log('╚══════════════════════════════════════════════════════════╝');
 
-function runAllTests() {
-    console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║  GEO API v5.0 - SUITE DE TESTS COMPLÈTE  ║');
-    console.log('╚═══════════════════════════════════════════╝');
-
-    const results = {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        errors: []
+    // Test avec un GeoJSON valide
+    const testGeoJSON = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-1.5536, 47.2173],
+            [-1.5500, 47.2200],
+            [-1.5400, 47.2150],
+            [-1.5536, 47.2173]
+        ]]
     };
 
-    // Test 1: Chargement villes
-    results.total++;
-    const t1 = testLoadVilles();
-    if (t1.success) results.passed++; else { results.failed++; results.errors.push('LoadVilles: ' + t1.error); }
+    const testString = JSON.stringify(testGeoJSON);
+    console.log('\n📝 GeoJSON de test:');
+    console.log(testString.substring(0, 200));
 
-    // Test 2: Chargement secteurs
-    results.total++;
-    const t2 = testLoadSecteurs();
-    if (t2.success) results.passed++; else { results.failed++; results.errors.push('LoadSecteurs: ' + t2.error); }
+    const result = Utils.parseGeoJSONPolygon(testString);
 
-    // Test 3: Chargement quartiers
-    results.total++;
-    const t3 = testLoadQuartiers();
-    if (t3.success) results.passed++; else { results.failed++; results.errors.push('LoadQuartiers: ' + t3.error); }
-
-    // Test 4: Hiérarchie
-    results.total++;
-    const t4 = testHierarchy();
-    if (t4.success) results.passed++; else { results.failed++; results.errors.push('Hierarchy: ' + t4.error); }
-
-    // Test 5: Validations
-    results.total++;
-    const t5 = testValidations();
-    if (t5.success) results.passed++; else { results.failed++; results.errors.push('Validations: ' + t5.error); }
-
-    // Test 6: Suppression polygones
-    results.total++;
-    const t6 = testPolygonRemoval();
-    if (t6.success) results.passed++; else { results.failed++; results.errors.push('PolygonRemoval: ' + t6.error); }
-
-    // Résumé
-    console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║            RÉSUMÉ DES TESTS               ║');
-    console.log('╚═══════════════════════════════════════════╝');
-    console.log(`Total: ${results.total}`);
-    console.log(`✅ Réussis: ${results.passed}`);
-    console.log(`❌ Échoués: ${results.failed}`);
-
-    if (results.errors.length > 0) {
-        console.log('\n⚠️ Erreurs détectées:');
-        results.errors.forEach(err => console.log(`  - ${err}`));
+    if (result) {
+        console.log('\n✅ Parsing réussi');
+        console.log(`   Nombre de points: ${result.length}`);
+        console.log(`   Premier point: [${result[0]}] (format [lat, lng])`);
+        console.log(`   Note: les coordonnées ont été inversées de [lng, lat] à [lat, lng]`);
+    } else {
+        console.log('\n❌ Parsing échoué');
     }
 
-    return results;
+    // Test avec null
+    console.log('\n\n📝 Test avec null:');
+    const nullResult = Utils.parseGeoJSONPolygon(null);
+    console.log(`   Résultat: ${nullResult === null ? '✅ null' : '❌ ' + nullResult}`);
+
+    // Test avec string vide
+    console.log('\n📝 Test avec string vide:');
+    const emptyResult = Utils.parseGeoJSONPolygon('');
+    console.log(`   Résultat: ${emptyResult === null ? '✅ null' : '❌ ' + emptyResult}`);
 }
 
-// ========================================
-// TESTS INDIVIDUELS RAPIDES
-// ========================================
+/**
+ * Affiche toutes les feuilles du spreadsheet
+ */
+function listAllSheets() {
+    console.log('\n╔══════════════════════════════════════════════════════════╗');
+    console.log('║     LISTE DES FEUILLES DU SPREADSHEET                    ║');
+    console.log('╚══════════════════════════════════════════════════════════╝');
 
-function quickTestData() {
-    console.log('\n========== QUICK TEST: Données ==========');
-    runAllTests();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets();
+
+    console.log(`\n📊 ${sheets.length} feuille(s) trouvée(s):\n`);
+
+    sheets.forEach((sheet, index) => {
+        const name = sheet.getName();
+        const rows = sheet.getLastRow();
+        const cols = sheet.getLastColumn();
+        
+        const isExpected = ['villes', 'secteurs', 'quartiers'].includes(name.toLowerCase());
+        const icon = isExpected ? '✅' : '  ';
+        
+        console.log(`${icon} ${index + 1}. "${name}"`);
+        console.log(`      Dimensions: ${rows} lignes × ${cols} colonnes`);
+    });
+
+    console.log('\n📋 Feuilles attendues:');
+    ['villes', 'secteurs', 'quartiers'].forEach(expected => {
+        const found = sheets.find(s => s.getName().toLowerCase() === expected);
+        console.log(`   ${found ? '✅' : '❌'} ${expected}`);
+    });
 }
 
-function quickTestGeocode() {
-    console.log('\n========== QUICK TEST: Géocodage ==========');
-    // Exemple - adaptez selon vos données
-    testGeocode('10 rue de Rivoli', 'Paris', '75001');
-}
-
-function quickTestResolve() {
-    console.log('\n========== QUICK TEST: Résolution ==========');
-    // Exemple - adaptez selon vos coordonnées
-    // Paris: 48.8566, 2.3522
-    testResolveLocation(48.8566, 2.3522);
+/**
+ * Lance tous les tests de diagnostic
+ */
+function runSheetDiagnostics() {
+    console.log('🔬 DIAGNOSTIC COMPLET DU GOOGLE SHEET\n');
+    
+    console.log('1️⃣  Liste des feuilles...\n');
+    listAllSheets();
+    
+    console.log('\n\n2️⃣  Contenu brut de la feuille "villes"...\n');
+    debugSheetRawContent();
+    
+    console.log('\n\n3️⃣  Test de la fonction de parsing...\n');
+    testParseGeoJSON();
 }

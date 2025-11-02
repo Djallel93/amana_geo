@@ -1,5 +1,5 @@
 /**
- * Fonctions de test pour GEO API v5.0
+ * Fonctions de test pour GEO API v5.0 (sans cache)
  */
 
 // ========================================
@@ -225,7 +225,7 @@ function testValidations() {
     console.log('\n========== TEST: Validations ==========');
 
     try {
-        // Test avec IDs existants (vous devrez ajuster selon vos données)
+        // Test avec IDs existants
         console.log('\n🔍 Test validation ville:');
         const villes = DataService.loadAll('VILLES');
         if (villes.length > 0) {
@@ -289,6 +289,89 @@ function testPolygonRemoval() {
     }
 }
 
+function debugPolygonData() {
+    console.log('\n========== DEBUG: Contenu brut des polygones ==========');
+
+    try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+        // Villes
+        console.log('\n🏙️ VILLES:');
+        const villeSheet = ss.getSheetByName('villes');
+        const villeData = villeSheet.getDataRange().getValues();
+
+        console.log(`\n📊 Analyse de toutes les ${villeData.length - 1} villes:\n`);
+
+        for (let i = 1; i < villeData.length; i++) {
+            const row = villeData[i];
+            const polygonStr = row[2];
+
+            if (!polygonStr || polygonStr.length === 0) {
+                console.log(`  ⚠️ Ville ${i} (${row[1]}): POLYGON VIDE`);
+                continue;
+            }
+
+            // Tester le parsing
+            try {
+                const parsed = Utils.parseGeoJSONPolygon(polygonStr);
+                if (!parsed) {
+                    console.log(`  ❌ Ville ${i} (${row[1]}): Parsing échoué`);
+                    console.log(`     Longueur: ${polygonStr.length} caractères`);
+                    console.log(`     Début: ${polygonStr.substring(0, 50)}`);
+                    console.log(`     Fin: ${polygonStr.substring(polygonStr.length - 50)}`);
+                } else {
+                    console.log(`  ✅ Ville ${i} (${row[1]}): OK (${parsed.length} points)`);
+                }
+            } catch (e) {
+                console.log(`  ❌ Ville ${i} (${row[1]}): ERREUR - ${e.message}`);
+                console.log(`     Longueur: ${polygonStr.length} caractères`);
+            }
+        }
+
+        // Quartiers
+        console.log('\n\n🏘️ QUARTIERS:');
+        const quartierSheet = ss.getSheetByName('quartiers');
+        const quartierData = quartierSheet.getDataRange().getValues();
+
+        console.log(`\n📊 Analyse de tous les ${quartierData.length - 1} quartiers:\n`);
+
+        let okCount = 0;
+        let koCount = 0;
+
+        for (let i = 1; i < quartierData.length; i++) {
+            const row = quartierData[i];
+            const polygonStr = row[2];
+
+            if (!polygonStr || polygonStr.length === 0) {
+                console.log(`  ⚠️ Quartier ${i} (${row[1]}): POLYGON VIDE`);
+                koCount++;
+                continue;
+            }
+
+            try {
+                const parsed = Utils.parseGeoJSONPolygon(polygonStr);
+                if (!parsed) {
+                    console.log(`  ❌ Quartier ${i} (${row[1]}): Parsing échoué`);
+                    koCount++;
+                } else {
+                    okCount++;
+                }
+            } catch (e) {
+                console.log(`  ❌ Quartier ${i} (${row[1]}): ERREUR - ${e.message}`);
+                koCount++;
+            }
+        }
+
+        console.log(`\n📊 Résumé quartiers: ${okCount} OK, ${koCount} KO`);
+
+        return { success: true };
+    } catch (e) {
+        console.log(`❌ ERREUR: ${e.message}`);
+        console.log(e.stack);
+        return { success: false, error: e.message };
+    }
+}
+
 // ========================================
 // SUITE DE TESTS COMPLÈTE
 // ========================================
@@ -296,6 +379,7 @@ function testPolygonRemoval() {
 function runAllTests() {
     console.log('\n╔═══════════════════════════════════════════╗');
     console.log('║  GEO API v5.0 - SUITE DE TESTS COMPLÈTE  ║');
+    console.log('║          (Version sans cache)             ║');
     console.log('╚═══════════════════════════════════════════╝');
 
     const results = {

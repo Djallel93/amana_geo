@@ -1,21 +1,19 @@
 /**
  * Service de géocodage - Résolution optimisée avec hiérarchie Ville > Secteur > Quartier
+ * Version sans cache - Suffisant pour usage modéré
  */
 
 const GeocodingService = {
 
     /**
-     * Géocode une adresse composée avec cache
+     * Géocode une adresse composée
      */
     geocodeAddress(adresse, ville = null, codePostal = null, pays = null) {
         // Construire l'adresse complète
         const parts = [adresse, ville, codePostal, pays || CONFIG.GEO.PAYS_DEFAUT].filter(p => p);
         const fullAddress = parts.join(', ');
 
-        const cacheKey = CacheManager.getGeocodeKey(fullAddress);
-        const cached = CacheManager.get(cacheKey);
-
-        if (cached) return cached;
+        Logger.debug(`Géocodage: ${fullAddress}`);
 
         try {
             const geocoder = Maps.newGeocoder();
@@ -35,7 +33,7 @@ const GeocodingService = {
             const result = response.results[0];
             const location = result.geometry.location;
 
-            const geocodeResult = {
+            return {
                 isValid: true,
                 exists: true,
                 coordinates: {
@@ -45,9 +43,6 @@ const GeocodingService = {
                 formattedAddress: result.formatted_address,
                 locationType: result.geometry.location_type
             };
-
-            CacheManager.set(cacheKey, geocodeResult);
-            return geocodeResult;
 
         } catch (e) {
             Logger.error(`Erreur géocodage: ${e.message}`, { adresse, ville, codePostal });
@@ -63,10 +58,7 @@ const GeocodingService = {
             return { isValid: false, exists: false, error: CONFIG.ERRORS.INVALID_COORDINATES };
         }
 
-        const cacheKey = CacheManager.generateKey('reverse', lat, lng);
-        const cached = CacheManager.get(cacheKey);
-
-        if (cached) return cached;
+        Logger.debug(`Géocodage inversé: [${lat}, ${lng}]`);
 
         try {
             const geocoder = Maps.newGeocoder();
@@ -76,15 +68,12 @@ const GeocodingService = {
                 return { isValid: false, exists: false, error: 'Aucune adresse trouvée' };
             }
 
-            const result = {
+            return {
                 isValid: true,
                 exists: true,
                 address: response.results[0].formatted_address,
                 coordinates: { latitude: lat, longitude: lng }
             };
-
-            CacheManager.set(cacheKey, result);
-            return result;
 
         } catch (e) {
             Logger.error(`Erreur géocodage inversé: ${e.message}`, { lat, lng });

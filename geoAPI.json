@@ -1,11 +1,10 @@
 {
 	"info": {
 		"_postman_id": "3bb27e16-516e-4d3e-ba93-ab71e0cb0e15",
-		"name": "AMANA GEO API v4.0 (Read-Only)",
-		"description": "API de géolocalisation en lecture seule avec authentification par API Key.\n\n## 🔐 Authentification\n\nTOUTES les requêtes nécessitent le header:\n```\nX-Api-Key: your-api-key-here\n```\n\n## 🎯 Résolution\n\nRésolution basée UNIQUEMENT sur les polygones (point-in-polygon).\nPas de fallback par distance.\n\n## ⚠️ Breaking Changes v4.0\n\n- Secteurs supprimés\n- Centroïdes supprimés\n- Endpoints CREATE/UPDATE/DELETE supprimés\n- Authentification obligatoire",
+		"name": "AMANA GEO API v5.0",
+		"description": "API de géolocalisation en lecture seule avec hiérarchie Ville > Secteur > Quartier.\n\n## 🔐 Authentification\n\nTOUTES les requêtes nécessitent le paramètre:\n```\nX-Api-Key: your-api-key-here\n```\n\n## 🏗️ Architecture v5.0\n\n**Hiérarchie à 3 niveaux:**\n- **Ville**: Niveau supérieur avec polygon et code postal\n- **Secteur**: Niveau intermédiaire sans polygon (logique uniquement)\n- **Quartier**: Niveau inférieur avec polygon\n\n## 🎯 Résolution\n\nLa résolution se fait par point-in-polygon:\n1. Trouver la ville (test polygon)\n2. Trouver le quartier dans cette ville (test polygon)\n3. Déduire le secteur du quartier (pas de test spatial)\n\n## ⚠️ Breaking Changes v5.0\n\n- Ajout dimension Secteur\n- Nouveaux endpoints secteurs\n- Quartiers liés aux secteurs (pas directement aux villes)\n- Endpoint resolveLocation retourne ville + secteur + quartier",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "15533722",
-		"_collection_link": "https://amana0.postman.co/workspace/Amana---GEO~33e3a153-2117-4d9c-86ce-6a618a7201b6/collection/15533722-3bb27e16-516e-4d3e-ba93-ab71e0cb0e15?action=share&source=collection_link&creator=15533722"
+		"_exporter_id": "15533722"
 	},
 	"item": [
 		{
@@ -17,7 +16,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}?action=geocode&address=1 Place Bellecour, 69002 Lyon, France&X-Api-Key={{apiKey}}",
+							"raw": "{{baseUrl}}?action=geocode&adresse=10 rue de Rivoli&ville=Paris&codePostal=75001&X-Api-Key={{apiKey}}",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -27,15 +26,24 @@
 									"value": "geocode"
 								},
 								{
-									"key": "address",
-									"value": "1 Place Bellecour, 69002 Lyon, France"
+									"key": "adresse",
+									"value": "10 rue de Rivoli"
+								},
+								{
+									"key": "ville",
+									"value": "Paris"
+								},
+								{
+									"key": "codePostal",
+									"value": "75001"
 								},
 								{
 									"key": "X-Api-Key",
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Convertit une adresse en coordonnées GPS via Google Maps Geocoding API."
 					},
 					"response": []
 				},
@@ -45,7 +53,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}?action=reversegeocode&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
+							"raw": "{{baseUrl}}?action=reversegeocode&lat=48.8566&lng=2.3522&X-Api-Key={{apiKey}}",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -56,50 +64,11 @@
 								},
 								{
 									"key": "lat",
-									"value": "47.2173"
+									"value": "48.8566"
 								},
 								{
 									"key": "lng",
-									"value": "-1.5536"
-								},
-								{
-									"key": "X-Api-Key",
-									"value": "{{apiKey}}"
-								}
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "🏘️ Quartiers",
-			"item": [
-				{
-					"name": "Trouver quartier par coordonnées",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}?action=findquartier&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"query": [
-								{
-									"key": "action",
-									"value": "findquartier"
-								},
-								{
-									"key": "lat",
-									"value": "47.2173",
-									"description": "Latitude"
-								},
-								{
-									"key": "lng",
-									"value": "-1.5536",
-									"description": "Longitude"
+									"value": "2.3522"
 								},
 								{
 									"key": "X-Api-Key",
@@ -107,48 +76,127 @@
 								}
 							]
 						},
-						"description": "⚠️ Les coordonnées DOIVENT être dans un polygon.\nPas de fallback par distance."
+						"description": "Convertit des coordonnées GPS en adresse via Google Maps."
 					},
 					"response": []
-				},
+				}
+			],
+			"description": "Endpoints de géocodage et géocodage inversé."
+		},
+		{
+			"name": "🎯 Resolution",
+			"item": [
 				{
-					"name": "Liste tous les quartiers",
+					"name": "Résolution complète (Ville + Secteur + Quartier)",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}?action=getquartiers&X-Api-Key={{apiKey}}",
+							"raw": "{{baseUrl}}?action=resolvelocation&lat=48.8566&lng=2.3522&X-Api-Key={{apiKey}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"query": [
 								{
 									"key": "action",
-									"value": "getquartiers"
+									"value": "resolvelocation"
+								},
+								{
+									"key": "lat",
+									"value": "48.8566"
+								},
+								{
+									"key": "lng",
+									"value": "2.3522"
 								},
 								{
 									"key": "X-Api-Key",
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Résout la hiérarchie complète pour des coordonnées:\n1. Ville (polygon)\n2. Quartier dans cette ville (polygon)\n3. Secteur déduit du quartier (logique)"
 					},
 					"response": []
-				},
+				}
+			],
+			"description": "Résolution hiérarchique complète Ville > Secteur > Quartier."
+		},
+		{
+			"name": "✅ Validation",
+			"item": [
 				{
-					"name": "Récupérer un quartier par ID",
+					"name": "Valider une Ville",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}?action=getquartier&id=3&X-Api-Key={{apiKey}}",
+							"raw": "{{baseUrl}}?action=validateville&id=1&X-Api-Key={{apiKey}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"query": [
 								{
 									"key": "action",
-									"value": "getquartier"
+									"value": "validateville"
+								},
+								{
+									"key": "id",
+									"value": "1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Vérifie si une ville existe par son ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Valider un Secteur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=validatesecteur&id=SEC_1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "validatesecteur"
+								},
+								{
+									"key": "id",
+									"value": "SEC_1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Vérifie si un secteur existe par son ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Valider un Quartier",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=validatequartier&id=3&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "validatequartier"
 								},
 								{
 									"key": "id",
@@ -159,76 +207,17 @@
 									"value": "{{apiKey}}"
 								}
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Quartiers d'une ville",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}?action=quartiersbyville&idVille=1&X-Api-Key={{apiKey}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"query": [
-								{
-									"key": "action",
-									"value": "quartiersbyville"
-								},
-								{
-									"key": "idVille",
-									"value": "1"
-								},
-								{
-									"key": "X-Api-Key",
-									"value": "{{apiKey}}"
-								}
-							]
-						}
+						},
+						"description": "Vérifie si un quartier existe par son ID."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Endpoints de validation d'existence des entités."
 		},
 		{
 			"name": "🏙️ Villes",
 			"item": [
-				{
-					"name": "Trouver ville par coordonnées",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}?action=findville&lat=47.2173&lng=-1.5536&X-Api-Key={{apiKey}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"query": [
-								{
-									"key": "action",
-									"value": "findville"
-								},
-								{
-									"key": "lat",
-									"value": "47.2173"
-								},
-								{
-									"key": "lng",
-									"value": "-1.5536"
-								},
-								{
-									"key": "X-Api-Key",
-									"value": "{{apiKey}}"
-								}
-							]
-						},
-						"description": "✨ NOUVEAU dans v4.0\n\nTrouve la ville contenant les coordonnées (polygon)."
-					},
-					"response": []
-				},
 				{
 					"name": "Liste toutes les villes",
 					"request": {
@@ -249,7 +238,8 @@
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Récupère la liste complète des villes."
 					},
 					"response": []
 				},
@@ -277,7 +267,8 @@
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Récupère une ville spécifique par son ID."
 					},
 					"response": []
 				},
@@ -287,7 +278,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}?action=searchvilles&nom=Nantes",
+							"raw": "{{baseUrl}}?action=searchvilles&nom=Paris&X-Api-Key={{apiKey}}",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -298,21 +289,217 @@
 								},
 								{
 									"key": "nom",
-									"value": "Nantes",
-									"description": "Recherche par nom (partiel)"
+									"value": "Paris",
+									"description": "Recherche partielle par nom"
 								},
 								{
 									"key": "codePostal",
-									"value": "44000",
-									"description": "Recherche par code postal (exact)",
+									"value": "75001",
+									"description": "Recherche exacte par code postal",
 									"disabled": true
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Recherche des villes par nom (partiel) ou code postal (exact)."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Gestion des villes (niveau supérieur de la hiérarchie)."
+		},
+		{
+			"name": "🏢 Secteurs",
+			"item": [
+				{
+					"name": "Liste tous les secteurs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getsecteurs&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getsecteurs"
+								},
+								{
+									"key": "idVille",
+									"value": "1",
+									"description": "Filtrer par ville (optionnel)",
+									"disabled": true
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère la liste complète des secteurs ou filtrée par ville."
+					},
+					"response": []
+				},
+				{
+					"name": "Récupérer un secteur par ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getsecteur&id=SEC_1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getsecteur"
+								},
+								{
+									"key": "id",
+									"value": "SEC_1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère un secteur spécifique par son ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Secteurs d'une ville",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=secteursbyville&idVille=1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "secteursbyville"
+								},
+								{
+									"key": "idVille",
+									"value": "1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère tous les secteurs d'une ville spécifique."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des secteurs (niveau intermédiaire, sans polygon)."
+		},
+		{
+			"name": "🏘️ Quartiers",
+			"item": [
+				{
+					"name": "Liste tous les quartiers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getquartiers&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getquartiers"
+								},
+								{
+									"key": "idSecteur",
+									"value": "SEC_1",
+									"description": "Filtrer par secteur (optionnel)",
+									"disabled": true
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère la liste complète des quartiers ou filtrée par secteur."
+					},
+					"response": []
+				},
+				{
+					"name": "Récupérer un quartier par ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=getquartier&id=3&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "getquartier"
+								},
+								{
+									"key": "id",
+									"value": "3"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère un quartier spécifique par son ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Quartiers d'un secteur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}?action=quartiersbysecteur&idSecteur=SEC_1&X-Api-Key={{apiKey}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "quartiersbysecteur"
+								},
+								{
+									"key": "idSecteur",
+									"value": "SEC_1"
+								},
+								{
+									"key": "X-Api-Key",
+									"value": "{{apiKey}}"
+								}
+							]
+						},
+						"description": "Récupère tous les quartiers d'un secteur spécifique."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des quartiers (niveau inférieur avec polygon)."
 		},
 		{
 			"name": "📏 Distance",
@@ -357,11 +544,13 @@
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Calcule la distance en kilomètres entre deux points GPS (formule de Haversine)."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Calcul de distances entre coordonnées GPS."
 		},
 		{
 			"name": "🔧 Utils",
@@ -386,11 +575,13 @@
 									"value": "{{apiKey}}"
 								}
 							]
-						}
+						},
+						"description": "Vérifie que l'API est opérationnelle et retourne les informations de version."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Utilitaires et tests de connectivité."
 		}
 	],
 	"event": [
@@ -398,8 +589,6 @@
 			"listen": "prerequest",
 			"script": {
 				"type": "text/javascript",
-				"packages": {},
-				"requests": {},
 				"exec": [
 					""
 				]
@@ -409,8 +598,6 @@
 			"listen": "test",
 			"script": {
 				"type": "text/javascript",
-				"packages": {},
-				"requests": {},
 				"exec": [
 					""
 				]
@@ -420,11 +607,13 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+			"value": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+			"type": "string"
 		},
 		{
 			"key": "apiKey",
-			"value": "your-api-key-here"
+			"value": "your-api-key-here",
+			"type": "string"
 		}
 	]
 }

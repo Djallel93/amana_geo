@@ -1,18 +1,14 @@
 /**
  * Service de données - Lecture seule avec hiérarchie Ville > Secteur > Quartier
+ * Version sans cache - optimisé pour ~200 quartiers max
  */
 
 const DataService = {
 
     /**
-     * Charge toutes les données d'une feuille avec cache
+     * Charge toutes les données d'une feuille
      */
     loadAll(entityType) {
-        const cacheKey = CacheManager.generateKey('all', entityType);
-        const cached = CacheManager.get(cacheKey);
-
-        if (cached) return cached;
-
         const sheet = getSheet(CONFIG.SHEETS[entityType.toUpperCase()]);
         const data = sheet.getDataRange().getValues();
 
@@ -48,9 +44,7 @@ const DataService = {
             entities.push(entity);
         }
 
-        CacheManager.set(cacheKey, entities);
-        Logger.info(`${entities.length} ${entityType} chargés depuis le sheet`);
-
+        Logger.debug(`${entities.length} ${entityType} chargés`);
         return entities;
     },
 
@@ -64,13 +58,9 @@ const DataService = {
 
     /**
      * Charge la hiérarchie complète pour optimisation
+     * Utilisé pour la résolution géographique
      */
     loadHierarchy() {
-        const cacheKey = 'hierarchy_complete';
-        const cached = CacheManager.get(cacheKey);
-
-        if (cached) return cached;
-
         const villes = this.loadAll('VILLES');
         const secteurs = this.loadAll('SECTEURS');
         const quartiers = this.loadAll('QUARTIERS');
@@ -111,9 +101,7 @@ const DataService = {
             secteurMap: Object.fromEntries(secteurMap)
         };
 
-        CacheManager.set(cacheKey, hierarchy, 1800); // 30 min
-        Logger.info('Hiérarchie complète chargée et enrichie');
-
+        Logger.debug(`Hiérarchie: ${villes.length} villes, ${secteurs.length} secteurs, ${quartiers.length} quartiers`);
         return hierarchy;
     },
 
