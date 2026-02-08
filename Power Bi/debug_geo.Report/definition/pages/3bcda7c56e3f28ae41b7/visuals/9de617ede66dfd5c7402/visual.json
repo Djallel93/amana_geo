@@ -2,14 +2,96 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
   "name": "9de617ede66dfd5c7402",
   "position": {
-    "x": 9.6,
-    "y": 0,
+    "x": 0,
+    "y": 213.50441058540497,
     "z": 0,
-    "height": 720,
-    "width": 1270.4
+    "height": 506.66238973536485,
+    "width": 1280.2052927024861
   },
   "visual": {
     "visualType": "map",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Famille"
+                    }
+                  },
+                  "Property": "adresse"
+                }
+              },
+              "queryRef": "Famille.adresse",
+              "nativeQueryRef": "adresse",
+              "active": true
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "quartiers"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "quartiers.nom",
+              "nativeQueryRef": "First nom"
+            }
+          ]
+        },
+        "Tooltips": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Famille"
+                        }
+                      },
+                      "Property": "id"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(Famille.id)",
+              "nativeQueryRef": "Sum of id"
+            }
+          ]
+        }
+      }
+    },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "95f22adec59229723979",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Famille"
+              }
+            },
+            "Property": "adresse"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Service de géocodage - Résolution optimisée avec hiérarchie Ville > Secteur > Quartier
- * Version sans cache - Suffisant pour usage modéré
+ * Version 5.1 - Ajout méthode batch-friendly
  */
 
 const GeocodingService = {
@@ -9,7 +9,6 @@ const GeocodingService = {
      * Géocode une adresse composée
      */
     geocodeAddress(adresse, ville = null, codePostal = null, pays = null) {
-        // Construire l'adresse complète
         const parts = [adresse, ville, codePostal, pays || CONFIG.GEO.PAYS_DEFAUT].filter(p => p);
         const fullAddress = parts.join(', ');
 
@@ -83,14 +82,21 @@ const GeocodingService = {
 
     /**
      * Résolution optimisée avec hiérarchie Ville > Secteur > Quartier
-     * Secteur est déduit du quartier (pas de polygone pour secteur)
      */
     resolveLocation(lat, lng) {
         Logger.info(`🎯 Résolution hiérarchique pour [${lat}, ${lng}]`);
 
         const hierarchy = DataService.loadHierarchy();
+        return this.resolveLocationWithHierarchy(lat, lng, hierarchy);
+    },
 
-        // ÉTAPE 1: Trouver la ville
+    /**
+     * Résolution avec hiérarchie pré-chargée (optimisé pour batch)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {Object} hierarchy - Hiérarchie pré-chargée
+     */
+    resolveLocationWithHierarchy(lat, lng, hierarchy) {
         Logger.info(`📍 Recherche ville parmi ${hierarchy.villes.length} villes`);
         const ville = this._findInPolygons(lat, lng, hierarchy.villes);
 
@@ -100,7 +106,6 @@ const GeocodingService = {
 
         Logger.success(`✅ Ville trouvée: ${ville.nom}`);
 
-        // ÉTAPE 2: Filtrer quartiers de cette ville uniquement
         const quartiersInVille = hierarchy.quartiers.filter(q => q.idVille === ville.id);
         Logger.info(`📍 Recherche quartier parmi ${quartiersInVille.length} quartiers (ville ${ville.nom})`);
 
@@ -112,7 +117,6 @@ const GeocodingService = {
 
         Logger.success(`✅ Quartier trouvé: ${quartier.nom}`);
 
-        // ÉTAPE 3: Le secteur est déduit du quartier (pas de test de polygone)
         const secteur = hierarchy.secteurMap[quartier.idSecteur];
 
         if (!secteur) {
@@ -165,7 +169,6 @@ const GeocodingService = {
         if (matches.length === 0) return null;
         if (matches.length === 1) return matches[0].entity;
 
-        // Plusieurs matchs: retourner le plus petit
         matches.sort((a, b) => a.area - b.area);
         Logger.debug(`Multiple matches found, selecting smallest (${matches.length} candidates)`);
         return matches[0].entity;

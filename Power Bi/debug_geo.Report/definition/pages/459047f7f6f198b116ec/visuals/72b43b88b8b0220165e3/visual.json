@@ -1,0 +1,128 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "name": "72b43b88b8b0220165e3",
+  "position": {
+    "x": 10.292397660818713,
+    "y": 0,
+    "z": 0,
+    "height": 720.46783625730984,
+    "width": 1269.7076023391812
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "villes"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "villes.nom",
+              "nativeQueryRef": "nom"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "secteurs"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "secteurs.nom",
+              "nativeQueryRef": "nom1"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "quartiers"
+                    }
+                  },
+                  "Property": "nom"
+                }
+              },
+              "queryRef": "quartiers.nom",
+              "nativeQueryRef": "nom2"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Famille"
+                    }
+                  },
+                  "Property": "adresse"
+                }
+              },
+              "queryRef": "Famille.adresse",
+              "nativeQueryRef": "adresse"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "villes"
+                  }
+                },
+                "Property": "nom"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "177.33245590944983D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "villes.nom"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "236.63489313826727D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "quartiers.nom"
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

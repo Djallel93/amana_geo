@@ -10,8 +10,8 @@
       "nodes": [
         {
           "location": {
-            "x": 0,
-            "y": 0
+            "x": 248,
+            "y": 17
           },
           "nodeIndex": "quartiers",
           "nodeLineageTag": "8c90604b-ba96-4880-b054-4d2cd758b799",
@@ -19,12 +19,12 @@
             "height": 300,
             "width": 234
           },
-          "zIndex": 0
+          "zIndex": 4
         },
         {
           "location": {
-            "x": 284,
-            "y": 38
+            "x": 769,
+            "y": 270
           },
           "nodeIndex": "secteurs",
           "nodeLineageTag": "5ae2e5d1-66cb-4333-9bad-78746119fac2",
@@ -32,12 +32,12 @@
             "height": 224,
             "width": 234
           },
-          "zIndex": 0
+          "zIndex": 3
         },
         {
           "location": {
-            "x": 568,
-            "y": 26
+            "x": 959,
+            "y": 0
           },
           "nodeIndex": "villes",
           "nodeLineageTag": "2dbd6b27-5b90-4329-9ef1-fd01d125d561",
@@ -45,7 +45,20 @@
             "height": 248,
             "width": 234
           },
-          "zIndex": 0
+          "zIndex": 1
+        },
+        {
+          "location": {
+            "x": 0,
+            "y": 392
+          },
+          "nodeIndex": "Famille",
+          "nodeLineageTag": "094e0c75-a5a9-43ab-b6a8-094ce56501ae",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 2
         }
       ],
       "name": "All tables",

@@ -1,5 +1,5 @@
 /**
- * Gestionnaire API REST - Version 5.0 avec dimension Secteur
+ * Gestionnaire API REST - Version 5.1 avec traitement par lot
  */
 
 /**
@@ -105,41 +105,26 @@ const APIRouter = {
 
   routeGet(action, params) {
     const routes = {
-      // Géocodage
       'geocode': () => APIHandlers.handleGeocode(params),
       'reversegeocode': () => APIHandlers.handleReverseGeocode(params),
-
-      // Résolution complète
       'resolvelocation': () => APIHandlers.handleResolveLocation(params),
-
-      // Validation
       'validatequartier': () => APIHandlers.handleValidateQuartier(params),
       'validatesecteur': () => APIHandlers.handleValidateSecteur(params),
       'validateville': () => APIHandlers.handleValidateVille(params),
-
-      // Quartier
       'getquartiers': () => APIHandlers.handleGetQuartiers(params),
       'getquartier': () => APIHandlers.handleGetQuartier(params),
       'quartiersbysecteur': () => APIHandlers.handleQuartiersBySecteur(params),
-
-      // Secteur (nouveau)
       'getsecteurs': () => APIHandlers.handleGetSecteurs(params),
       'getsecteur': () => APIHandlers.handleGetSecteur(params),
       'secteursbyville': () => APIHandlers.handleSecteursByVille(params),
-
-      // Ville
       'getvilles': () => APIHandlers.handleGetVilles(params),
       'getville': () => APIHandlers.handleGetVille(params),
       'searchvilles': () => APIHandlers.handleSearchVilles(params),
-
-      // Distance
       'calculatedistance': () => APIHandlers.handleCalculateDistance(params),
-
-      // Ping
       'ping': () => Utils.createJsonResponse({
         status: 'ok',
-        message: 'GEO API opérationnelle v5.0 (Ville > Secteur > Quartier)',
-        version: '5.0',
+        message: 'GEO API opérationnelle v5.1 (Batch processing)',
+        version: '5.1',
         timestamp: new Date().toISOString()
       })
     };
@@ -157,11 +142,23 @@ const APIRouter = {
   },
 
   routePost(action, params) {
-    return Utils.createErrorResponse(
-      'METHOD_NOT_ALLOWED',
-      'API en lecture seule. Utilisez GET.',
-      405
-    );
+    const routes = {
+      'batchgeocode': () => APIHandlers.handleBatchGeocode(params),
+      'batchresolvelocation': () => APIHandlers.handleBatchResolveLocation(params),
+      'batchcalculatedistance': () => APIHandlers.handleBatchCalculateDistance(params)
+    };
+
+    const handler = routes[action];
+
+    if (!handler) {
+      return Utils.createErrorResponse(
+        'METHOD_NOT_ALLOWED',
+        `Action POST "${action}" non supportée. Actions disponibles: batchgeocode, batchresolvelocation, batchcalculatedistance`,
+        405
+      );
+    }
+
+    return handler();
   }
 };
 
@@ -205,6 +202,19 @@ const APIHandlers = {
     return Utils.createJsonResponse(result);
   },
 
+  // ========== BATCH GÉOCODAGE ==========
+
+  handleBatchGeocode(params) {
+    if (!params.adresses || !Array.isArray(params.adresses)) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "adresses" requis (tableau d\'objets avec adresse, ville?, codePostal?, pays?)'
+      );
+    }
+
+    return BatchService.batchGeocode(params.adresses);
+  },
+
   // ========== RÉSOLUTION ==========
 
   handleResolveLocation(params) {
@@ -228,6 +238,17 @@ const APIHandlers = {
         404
       );
     }
+  },
+
+  handleBatchResolveLocation(params) {
+    if (!params.coordinates || !Array.isArray(params.coordinates)) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "coordinates" requis (tableau d\'objets avec lat et lng)'
+      );
+    }
+
+    return BatchService.batchResolveLocation(params.coordinates);
   },
 
   // ========== VALIDATION ==========
@@ -268,189 +289,76 @@ const APIHandlers = {
     return Utils.createJsonResponse(result);
   },
 
-  // ========== QUARTIER ==========
+  // ========== QUARTIER, SECTEUR, VILLE (inchangé) ==========
 
   handleGetQuartiers(params) {
     const idSecteur = params.idSecteur || params.id_secteur;
-
     let quartiers = DataService.loadAll('QUARTIERS');
-
-    if (idSecteur) {
-      quartiers = quartiers.filter(q => q.idSecteur == idSecteur);
-    }
-
+    if (idSecteur) quartiers = quartiers.filter(q => q.idSecteur == idSecteur);
     quartiers = DataService.stripPolygons(quartiers);
-
-    return Utils.createJsonResponse({
-      count: quartiers.length,
-      quartiers: quartiers
-    });
+    return Utils.createJsonResponse({ count: quartiers.length, quartiers: quartiers });
   },
 
   handleGetQuartier(params) {
-    if (!params.id) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "id" requis'
-      );
-    }
-
+    if (!params.id) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "id" requis');
     const quartier = DataService.findById('QUARTIERS', params.id);
-
-    if (!quartier) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.QUARTIER_NOT_FOUND,
-        `Quartier ${params.id} introuvable`,
-        404
-      );
-    }
-
+    if (!quartier) return Utils.createErrorResponse(CONFIG.ERRORS.QUARTIER_NOT_FOUND, `Quartier ${params.id} introuvable`, 404);
     return Utils.createJsonResponse(DataService.stripPolygons(quartier));
   },
 
   handleQuartiersBySecteur(params) {
     const idSecteur = params.idSecteur || params.id_secteur;
-
-    if (!idSecteur) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "idSecteur" requis'
-      );
-    }
-
-    let quartiers = DataService.loadAll('QUARTIERS')
-      .filter(q => q.idSecteur == idSecteur);
-
+    if (!idSecteur) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "idSecteur" requis');
+    let quartiers = DataService.loadAll('QUARTIERS').filter(q => q.idSecteur == idSecteur);
     quartiers = DataService.stripPolygons(quartiers);
-
-    return Utils.createJsonResponse({
-      idSecteur: idSecteur,
-      count: quartiers.length,
-      quartiers: quartiers
-    });
+    return Utils.createJsonResponse({ idSecteur: idSecteur, count: quartiers.length, quartiers: quartiers });
   },
-
-  // ========== SECTEUR (NOUVEAU) ==========
 
   handleGetSecteurs(params) {
     const idVille = params.idVille || params.id_ville;
-
     let secteurs = DataService.loadAll('SECTEURS');
-
-    if (idVille) {
-      secteurs = secteurs.filter(s => s.idVille == idVille);
-    }
-
+    if (idVille) secteurs = secteurs.filter(s => s.idVille == idVille);
     secteurs = DataService.stripPolygons(secteurs);
-
-    return Utils.createJsonResponse({
-      count: secteurs.length,
-      secteurs: secteurs
-    });
+    return Utils.createJsonResponse({ count: secteurs.length, secteurs: secteurs });
   },
 
   handleGetSecteur(params) {
-    if (!params.id) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "id" requis'
-      );
-    }
-
+    if (!params.id) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "id" requis');
     const secteur = DataService.findById('SECTEURS', params.id);
-
-    if (!secteur) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.SECTEUR_NOT_FOUND,
-        `Secteur ${params.id} introuvable`,
-        404
-      );
-    }
-
+    if (!secteur) return Utils.createErrorResponse(CONFIG.ERRORS.SECTEUR_NOT_FOUND, `Secteur ${params.id} introuvable`, 404);
     return Utils.createJsonResponse(DataService.stripPolygons(secteur));
   },
 
   handleSecteursByVille(params) {
     const idVille = params.idVille || params.id_ville;
-
-    if (!idVille) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "idVille" requis'
-      );
-    }
-
-    let secteurs = DataService.loadAll('SECTEURS')
-      .filter(s => s.idVille == idVille);
-
+    if (!idVille) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "idVille" requis');
+    let secteurs = DataService.loadAll('SECTEURS').filter(s => s.idVille == idVille);
     secteurs = DataService.stripPolygons(secteurs);
-
-    return Utils.createJsonResponse({
-      idVille: idVille,
-      count: secteurs.length,
-      secteurs: secteurs
-    });
+    return Utils.createJsonResponse({ idVille: idVille, count: secteurs.length, secteurs: secteurs });
   },
-
-  // ========== VILLE ==========
 
   handleGetVilles() {
     let villes = DataService.loadAll('VILLES');
     villes = DataService.stripPolygons(villes);
-
-    return Utils.createJsonResponse({
-      count: villes.length,
-      villes: villes
-    });
+    return Utils.createJsonResponse({ count: villes.length, villes: villes });
   },
 
   handleGetVille(params) {
-    if (!params.id) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "id" requis'
-      );
-    }
-
+    if (!params.id) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "id" requis');
     const ville = DataService.findById('VILLES', params.id);
-
-    if (!ville) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.VILLE_NOT_FOUND,
-        `Ville ${params.id} introuvable`,
-        404
-      );
-    }
-
+    if (!ville) return Utils.createErrorResponse(CONFIG.ERRORS.VILLE_NOT_FOUND, `Ville ${params.id} introuvable`, 404);
     return Utils.createJsonResponse(DataService.stripPolygons(ville));
   },
 
   handleSearchVilles(params) {
     const codePostal = params.codePostal || params.code_postal;
     const nom = params.nom || params.name;
-
-    if (!codePostal && !nom) {
-      return Utils.createErrorResponse(
-        CONFIG.ERRORS.MISSING_PARAMETERS,
-        'Paramètre "codePostal" ou "nom" requis'
-      );
-    }
-
+    if (!codePostal && !nom) return Utils.createErrorResponse(CONFIG.ERRORS.MISSING_PARAMETERS, 'Paramètre "codePostal" ou "nom" requis');
     let villes = DataService.loadAll('VILLES');
-
-    if (codePostal) {
-      villes = villes.filter(v => v.codePostal == codePostal);
-    } else if (nom) {
-      const searchTerm = nom.toLowerCase();
-      villes = villes.filter(v => v.nom.toLowerCase().includes(searchTerm));
-    }
-
+    if (codePostal) villes = villes.filter(v => v.codePostal == codePostal);
+    else if (nom) villes = villes.filter(v => v.nom.toLowerCase().includes(nom.toLowerCase()));
     villes = DataService.stripPolygons(villes);
-
-    return Utils.createJsonResponse({
-      count: villes.length,
-      villes: villes
-    });
+    return Utils.createJsonResponse({ count: villes.length, villes: villes });
   },
 
   // ========== DISTANCE ==========
@@ -476,5 +384,23 @@ const APIHandlers = {
       from: { latitude: lat1, longitude: lng1 },
       to: { latitude: lat2, longitude: lng2 }
     });
+  },
+
+  handleBatchCalculateDistance(params) {
+    if (!params.coordinates || !Array.isArray(params.coordinates)) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "coordinates" requis (tableau d\'objets avec lat et lng)'
+      );
+    }
+
+    if (!params.reference || !params.reference.lat || !params.reference.lng) {
+      return Utils.createErrorResponse(
+        CONFIG.ERRORS.MISSING_PARAMETERS,
+        'Paramètre "reference" requis (objet avec lat et lng)'
+      );
+    }
+
+    return BatchService.batchCalculateDistance(params.coordinates, params.reference);
   }
 };

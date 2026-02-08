@@ -1,0 +1,197 @@
+table Famille
+	lineageTag: 094e0c75-a5a9-43ab-b6a8-094ce56501ae
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: c26b3f14-72b2-4f20-b35b-89d0027afd10
+		summarizeBy: sum
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nom
+		dataType: string
+		lineageTag: 9190b7b0-1a52-48ef-9566-4944c76a87e1
+		summarizeBy: none
+		sourceColumn: nom
+
+		annotation SummarizationSetBy = Automatic
+
+	column prenom
+		dataType: string
+		lineageTag: 79cb4cd7-174d-4872-a6fb-6fced0c30ccd
+		summarizeBy: none
+		sourceColumn: prenom
+
+		annotation SummarizationSetBy = Automatic
+
+	column zakat_el_fitr
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: c287794a-46e2-4439-ad12-7a21d2c8356c
+		summarizeBy: none
+		sourceColumn: zakat_el_fitr
+
+		annotation SummarizationSetBy = Automatic
+
+	column sadaqa
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: e2e12bce-095e-48bf-81ec-c5eb896b5ba1
+		summarizeBy: none
+		sourceColumn: sadaqa
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre_adulte
+		dataType: int64
+		formatString: 0
+		lineageTag: 90539be0-a6cb-46b6-9ca0-ec5fbd2097b8
+		summarizeBy: sum
+		sourceColumn: nombre_adulte
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre_enfant
+		dataType: int64
+		formatString: 0
+		lineageTag: 6780d200-2190-4539-893e-f74b55d82bea
+		summarizeBy: sum
+		sourceColumn: nombre_enfant
+
+		annotation SummarizationSetBy = Automatic
+
+	column adresse
+		dataType: string
+		lineageTag: cbf9374f-1457-4650-acf5-e1949ef93e32
+		dataCategory: Address
+		summarizeBy: none
+		sourceColumn: adresse
+
+		annotation SummarizationSetBy = Automatic
+
+	column id_quartier
+		dataType: int64
+		formatString: 0
+		lineageTag: f41c94fb-ab4a-4412-867b-1f759d93d2d2
+		summarizeBy: none
+		sourceColumn: id_quartier
+
+		annotation SummarizationSetBy = Automatic
+
+	column se_deplace
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 9417236e-a4d6-41f5-9a4d-5dc0eed54f83
+		summarizeBy: none
+		sourceColumn: se_deplace
+
+		annotation SummarizationSetBy = Automatic
+
+	column email
+		dataType: string
+		lineageTag: b9d784f3-44f3-4541-8794-5aebdff8c912
+		summarizeBy: none
+		sourceColumn: email
+
+		annotation SummarizationSetBy = Automatic
+
+	column telephone
+		dataType: string
+		lineageTag: e6341c61-cf95-41ad-9f6d-8f9b71607e1d
+		summarizeBy: none
+		sourceColumn: telephone
+
+		annotation SummarizationSetBy = Automatic
+
+	column telephone_bis
+		dataType: string
+		lineageTag: 17e7df48-515d-4c12-a112-45e7b4f39b06
+		summarizeBy: none
+		sourceColumn: telephone_bis
+
+		annotation SummarizationSetBy = Automatic
+
+	column identite
+		dataType: string
+		lineageTag: 2701e2c5-9f39-4fdf-854d-13250f1af4fb
+		summarizeBy: none
+		sourceColumn: identite
+
+		annotation SummarizationSetBy = Automatic
+
+	column caf
+		dataType: string
+		lineageTag: d9baba2e-c693-4815-9c36-4707fdec099e
+		summarizeBy: none
+		sourceColumn: caf
+
+		annotation SummarizationSetBy = Automatic
+
+	column circonstances
+		dataType: string
+		lineageTag: 7cce46f6-184e-45de-8560-f11bcbe40f2f
+		summarizeBy: none
+		sourceColumn: circonstances
+
+		annotation SummarizationSetBy = Automatic
+
+	column ressentit
+		dataType: string
+		lineageTag: 98a88f11-0ea7-4539-bef8-fc74d862651d
+		summarizeBy: none
+		sourceColumn: ressentit
+
+		annotation SummarizationSetBy = Automatic
+
+	column specificites
+		dataType: string
+		lineageTag: f68288fd-33cf-4fbc-835b-31d3c0fbf4dd
+		summarizeBy: none
+		sourceColumn: specificites
+
+		annotation SummarizationSetBy = Automatic
+
+	column criticite
+		dataType: int64
+		formatString: 0
+		lineageTag: 43c8fc78-2446-45cc-860d-6dee87c195fa
+		summarizeBy: sum
+		sourceColumn: criticite
+
+		annotation SummarizationSetBy = Automatic
+
+	column etat_dossier
+		dataType: string
+		lineageTag: 5d7e2ccd-d2d9-4c6b-a3dc-b6794eee261c
+		summarizeBy: none
+		sourceColumn: etat_dossier
+
+		annotation SummarizationSetBy = Automatic
+
+	column commentaire_dossier
+		dataType: string
+		lineageTag: 30202b29-30b4-4f6b-b5f6-2f1344070358
+		summarizeBy: none
+		sourceColumn: commentaire_dossier
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Famille = m
+		mode: import
+		source =
+				let
+				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1_0PsDOq8_AEpmJd2kh9yCrF6nU95bD2jHaQPgP7LkqI"),
+				    Famille_Table = Source{[name="Famille",ItemKind="Table"]}[Data],
+				    #"Promoted Headers" = Table.PromoteHeaders(Famille_Table, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"prenom", type text}, {"zakat_el_fitr", type logical}, {"sadaqa", type logical}, {"nombre_adulte", Int64.Type}, {"nombre_enfant", Int64.Type}, {"adresse", type text}, {"id_quartier", Int64.Type}, {"se_deplace", type logical}, {"email", type text}, {"telephone", type any}, {"telephone_bis", type any}, {"identite", type text}, {"caf", type text}, {"circonstances", type text}, {"ressentit", type any}, {"specificites", type any}, {"criticite", Int64.Type}, {"etat_dossier", type text}, {"commentaire_dossier", type text}}),
+				    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each ([id] <> null and [id] <> "") and ([email] = "")),
+				    #"Filtered Rows1" = Table.SelectRows(#"Filtered Rows", each [id_quartier] <> null and [id_quartier] <> "")
+				in
+				    #"Filtered Rows1"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

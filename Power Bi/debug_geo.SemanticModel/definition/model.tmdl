@@ -8,13 +8,14 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 1
 
-annotation PBI_QueryOrder = ["quartiers","secteurs","villes"]
+annotation PBI_QueryOrder = ["quartiers","secteurs","villes","Famille"]
 
 annotation PBI_ProTooling = ["DevMode"]
 
 ref table quartiers
 ref table secteurs
 ref table villes
+ref table Famille
 
 ref cultureInfo en-GB
 

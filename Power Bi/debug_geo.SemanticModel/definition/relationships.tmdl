@@ -6,3 +6,7 @@ relationship 6c5ec35b-c4b3-2aae-edfa-7ed34c363387
 	fromColumn: secteurs.id_ville
 	toColumn: villes.id
 
+relationship d06117cc-e181-bac1-5a75-934284ece1c4
+	fromColumn: Famille.id_quartier
+	toColumn: quartiers.id
+

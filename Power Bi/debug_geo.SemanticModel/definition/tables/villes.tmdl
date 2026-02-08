@@ -18,34 +18,6 @@ table villes
 
 		annotation SummarizationSetBy = Automatic
 
-	column centre_latitude
-		dataType: double
-		lineageTag: d191b806-53f5-4288-b677-e47b04e6a1fb
-		summarizeBy: none
-		sourceColumn: centre_latitude
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	column centre_longitude
-		dataType: double
-		lineageTag: 1b5d3ae1-ebe4-49e5-b766-43abb7717506
-		summarizeBy: none
-		sourceColumn: centre_longitude
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	column polygon_frontiere
-		dataType: string
-		lineageTag: c7ed4a35-0be3-4108-8cca-ea5f11d9f7c2
-		summarizeBy: none
-		sourceColumn: polygon_frontiere
-
-		annotation SummarizationSetBy = Automatic
-
 	column code_postal
 		dataType: int64
 		formatString: 0
@@ -70,10 +42,10 @@ table villes
 				    Source = GoogleSheets.Contents("https://docs.google.com/spreadsheets/d/1NZt62iJFGB4kZKf9MR85BwyqoglGmq-4LfTN21fTdLI"),
 				    villes_Table = Source{[name="villes",ItemKind="Table"]}[Data],
 				    #"Promoted Headers" = Table.PromoteHeaders(villes_Table, [PromoteAllScalars=true]),
-				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"centre_latitude", type number}, {"centre_longitude", type number}, {"polygon_frontiere", type text}, {"code_postal", Int64.Type}, {"departement", type text}}),
-				    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each [centre_latitude] <> null and [centre_latitude] <> "")
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"id", Int64.Type}, {"nom", type text}, {"polygon", type text}, {"code_postal", Int64.Type}, {"departement", type text}}),
+				    #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"polygon"})
 				in
-				    #"Filtered Rows"
+				    #"Removed Columns"
 
 	annotation PBI_NavigationStepName = Navigation
 

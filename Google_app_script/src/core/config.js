@@ -1,6 +1,6 @@
 /**
  * GEO API - Configuration centralisée
- * Version: 5.0 (Read-Only API with Secteur dimension - No Cache)
+ * Version: 5.1 (Batch Processing)
  */
 
 const CONFIG = (() => {
@@ -40,12 +40,19 @@ const CONFIG = (() => {
     GEO: {
       RAYON_TERRE_KM: 6371,
       PAYS_DEFAUT: 'France',
-      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/5.0 (bigdjallel@gmail.com)'
+      USER_AGENT: props.getProperty('USER_AGENT') || 'AMANA-GeoAPI/5.1 (bigdjallel@gmail.com)'
     },
 
     // Authentification
     AUTH: {
       API_KEY: props.getProperty('API_KEY') || ''
+    },
+
+    // Paramètres de traitement par lot
+    BATCH: {
+      MAX_ITEMS: parseInt(props.getProperty('BATCH_MAX_ITEMS')) || 100,
+      PAUSE_EVERY: parseInt(props.getProperty('BATCH_PAUSE_EVERY')) || 10,
+      PAUSE_MS: parseInt(props.getProperty('BATCH_PAUSE_MS')) || 1000
     },
 
     // Messages d'erreur
